@@ -12,6 +12,13 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.xcresult
+*.xcarchive
+
+# Test/profiling output
+*.profraw
+*.gcda
+*.gcno
 
 # Swift Package Manager
 .swiftpm/

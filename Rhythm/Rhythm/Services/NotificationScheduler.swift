@@ -28,6 +28,13 @@ final class NotificationScheduler {
 
     /// Ask once at startup; silently no-ops if already determined.
     func requestAuthorizationIfNeeded() async {
+        #if DEBUG
+            // Screenshot/dev automation: launch with -suppressNotificationPrompt
+            // (e.g. `simctl launch <sim> marshallwarners.Rhythm -suppressNotificationPrompt`).
+            if ProcessInfo.processInfo.arguments.contains("-suppressNotificationPrompt") {
+                return
+            }
+        #endif
         let center = UNUserNotificationCenter.current()
         let status = await center.notificationSettings().authorizationStatus
         guard status == .notDetermined else { return }
