@@ -30,7 +30,7 @@ final class NotificationScheduler {
     func requestAuthorizationIfNeeded() async {
         #if DEBUG
             // Screenshot/dev automation: launch with -suppressNotificationPrompt
-            // (e.g. `simctl launch <sim> marshallwarners.Rhythm -suppressNotificationPrompt`).
+            // (e.g. `simctl launch <sim> com.marshallwarners.Rhythm.dev -suppressNotificationPrompt`).
             if ProcessInfo.processInfo.arguments.contains("-suppressNotificationPrompt") {
                 return
             }

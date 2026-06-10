@@ -100,5 +100,6 @@ xcodebuild -project Rhythm/Rhythm.xcodeproj -scheme Rhythm \
 - `xcodebuild test` tends to shut the simulator down afterward; `xcrun simctl boot "iPhone 17 Pro"` before reinstalling. A one-off "System Failures: encountered an error" test result usually means the sim died mid-run, not a real failure — re-run before investigating.
 - DEBUG builds auto-seed the prototype's sample data on first launch into an empty store (`SeedData`); production starts empty. Simulator data persists across reinstalls.
 - CloudKit doesn't sync in the simulator (no signed-in account) — local persistence works, sync errors in the console are expected noise. Real sync, notification delivery, and midnight badge rollover are device-only verifications.
-- Signing: automatic, team `UJFW53692H`, bundle `marshallwarners.Rhythm`.
+- Signing: automatic, team `UJFW53692H`. Bundle IDs are per-configuration: Release = `com.marshallwarners.Rhythm` (the App Store app), Debug = `com.marshallwarners.Rhythm.dev` (displays as "Rhythm Dev", installs side-by-side with the App Store app and uses the CloudKit **Development** environment — dev builds can never touch or replace production).
+- Releasing: see `docs/RELEASING.md` for the App Store update workflow (versioning, archive/upload, CloudKit schema promotion).
 - Commit at feature/fix boundaries with concise imperative messages (match `git log` style).
