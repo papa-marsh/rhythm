@@ -10,10 +10,11 @@ import SwiftUI
 struct RhythmApp: App {
     let sharedModelContainer: ModelContainer
     @State private var store: RhythmStore
-    @State private var settings = AppSettings()
+    @State private var settings: AppSettings
     @State private var ticker = DayTicker()
     @State private var toasts = ToastCenter()
     @State private var navigator = Navigator()
+    @State private var scheduler: NotificationScheduler
 
     init() {
         let schema = Schema([
@@ -35,7 +36,14 @@ struct RhythmApp: App {
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-        _store = State(initialValue: RhythmStore(context: sharedModelContainer.mainContext))
+        let settings = AppSettings()
+        let store = RhythmStore(context: sharedModelContainer.mainContext)
+        let scheduler = NotificationScheduler(
+            context: sharedModelContainer.mainContext, settings: settings)
+        store.onMutation = { [weak scheduler] in scheduler?.replan() }
+        _settings = State(initialValue: settings)
+        _store = State(initialValue: store)
+        _scheduler = State(initialValue: scheduler)
     }
 
     var body: some Scene {
@@ -46,9 +54,14 @@ struct RhythmApp: App {
                 .environment(ticker)
                 .environment(toasts)
                 .environment(navigator)
-                #if DEBUG
-                    .task { seedIfEmpty() }
-                #endif
+                .environment(scheduler)
+                .task {
+                    #if DEBUG
+                        seedIfEmpty()
+                    #endif
+                    await scheduler.requestAuthorizationIfNeeded()
+                    scheduler.replan()
+                }
         }
         .modelContainer(sharedModelContainer)
     }

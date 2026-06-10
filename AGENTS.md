@@ -17,7 +17,7 @@ Where the spec's 2023-era chrome conflicts with iOS 26's native design language,
 - **Month/year intervals are anchor-day-preserving**: store the original `anchorDay` and clamp to target month length each cycle. Never derive from the previously-clamped date.
 - **Beat** — may be standalone (no cadence). Identity fields (name/color/glyph) are *copied* from the cadence at generation; editing a beat never edits its cadence.
 - **Grace** — days before due that a beat starts mattering. Derived `0.85·√freqDays` (see spec), user-editable. Drives Today-list visibility, notification timing, and snooze length.
-- **Snooze** — sets `snoozedUntil`; while in the future, it *is* the effective due date for urgency, sorting, badge, and notifications. The beat stays visible.
+- **Snooze** — sets `snoozedUntil`; while in the future, it *is* the effective due date for urgency, sorting, badge, and notifications. The beat stays visible. Quick snooze = grace-length, based from `max(today, effectiveDue)` so repeated snoozes compound.
 - **Beats are due on a day, never a time.** All due-date math is day-granularity; notification time only controls reminder delivery.
 - "Today" is live app state (re-evaluated at midnight/foreground), never cached.
 
@@ -25,8 +25,8 @@ Where the spec's 2023-era chrome conflicts with iOS 26's native design language,
 
 - `Rhythm/Rhythm/Core/` — **RhythmCore**: pure logic (frequency, schedule math, grace, urgency tiers, relative-date formatting). No UI, no SwiftData imports. All spec math lives here and is unit-tested against the spec's examples.
 - `Rhythm/Rhythm/Models/` + store — SwiftData models mirrored to CloudKit (private DB, container `iCloud.marshallwarners.RhythmData`). **CloudKit rules: every property has a default or is optional; relationships optional with explicit inverses; no unique constraints.** All writes go through the store, which triggers notification/badge replanning.
-- Services — notification scheduler (reminders + silent midnight badge-only notifications, prioritized within iOS's 64-pending-notification cap; badge = count of beats with effective due ≤ today) and day-rollover ticking.
-- UI — SwiftUI, 4 tabs (Today, Cadences, Discovery, Settings). Settings persist via `@AppStorage`, local-only by design.
+- `Rhythm/Rhythm/Services/` — `NotificationPlanner` (pure, heavily tested: reminder timing, midnight badge timeline, 64-slot chronological budget) + `NotificationScheduler` (applies plans to `UNUserNotificationCenter`; replans after every mutation/foreground/day-rollover), `DayTicker` ("today" as observable state), `ToastCenter`.
+- UI — SwiftUI, 4 tabs (Today, Cadences, Discovery, Settings). Settings persist via `AppSettings` (UserDefaults), local-only by design. Cross-tab jumps go through `Navigator`.
 
 ## Commands
 

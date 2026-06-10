@@ -12,6 +12,7 @@ struct RootView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(DayTicker.self) private var ticker
     @Environment(Navigator.self) private var navigator
+    @Environment(NotificationScheduler.self) private var scheduler
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -34,14 +35,21 @@ struct RootView: View {
         .preferredColorScheme(settings.appearance.colorScheme)
         .overlay { ToastOverlay() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { ticker.refresh() }
+            if phase == .active {
+                ticker.refresh()
+                scheduler.replan()
+            }
         }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIApplication.significantTimeChangeNotification)
         ) { _ in
             ticker.refresh()
+            scheduler.replan()
         }
+        // These settings are baked into scheduled notification content.
+        .onChange(of: settings.sound) { scheduler.replan() }
+        .onChange(of: settings.showEmoji) { scheduler.replan() }
     }
 }
 
