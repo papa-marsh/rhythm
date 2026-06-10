@@ -49,6 +49,7 @@ struct TodayScreen: View {
             .navigationTitle("Today")
             .navigationSubtitle(subtitle)
             .searchable(text: $search, prompt: "Search beats")
+            .searchToolbarBehavior(.minimize)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Add", systemImage: "plus") {
