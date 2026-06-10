@@ -107,14 +107,21 @@
             context.insert(passport)
 
             // Discoveries
-            context.insert(
-                Discovery(
-                    name: "Change fridge water filter", colorHex: "#64D2FF", glyph: "💧",
-                    note: "No idea how often. Tracking to find out.", logs: [day(-190)]))
-            context.insert(
-                Discovery(
-                    name: "Descale the espresso machine", colorHex: "#A2845E", glyph: "☕️",
-                    logs: [day(-120), day(-48)]))
+            func discovery(name: String, colorHex: String, glyph: String, note: String = "", logOffsets: [Int]) {
+                let d = Discovery(name: name, colorHex: colorHex, glyph: glyph, note: note)
+                context.insert(d)
+                for offset in logOffsets {
+                    let log = DiscoveryLog(date: day(offset))
+                    context.insert(log)
+                    log.discovery = d
+                }
+            }
+            discovery(
+                name: "Change fridge water filter", colorHex: "#64D2FF", glyph: "💧",
+                note: "No idea how often. Tracking to find out.", logOffsets: [-190])
+            discovery(
+                name: "Descale the espresso machine", colorHex: "#A2845E", glyph: "☕️",
+                logOffsets: [-120, -48])
 
             try? context.save()
         }

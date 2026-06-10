@@ -198,17 +198,24 @@ final class RhythmStore {
     func createDiscovery(
         name: String, colorHex: String, glyph: String, logFirstOccurrenceToday: Bool
     ) -> Discovery {
-        let discovery = Discovery(
-            name: name, colorHex: colorHex, glyph: glyph,
-            logs: logFirstOccurrenceToday ? [today] : [])
+        let discovery = Discovery(name: name, colorHex: colorHex, glyph: glyph)
         context.insert(discovery)
+        if logFirstOccurrenceToday {
+            appendLog(to: discovery, date: today)
+        }
         mutated()
         return discovery
     }
 
     func logOccurrence(_ discovery: Discovery) {
-        discovery.logs.append(today)
+        appendLog(to: discovery, date: today)
         mutated()
+    }
+
+    private func appendLog(to discovery: Discovery, date: Date) {
+        let log = DiscoveryLog(date: date)
+        context.insert(log)
+        log.discovery = discovery
     }
 
     func deleteDiscovery(_ discovery: Discovery) {

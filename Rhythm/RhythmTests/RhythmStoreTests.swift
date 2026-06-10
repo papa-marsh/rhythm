@@ -25,7 +25,9 @@ private func date(_ y: Int, _ m: Int, _ d: Int) -> Date {
 
 @MainActor
 private func makeStore() throws -> RhythmStore {
-    let schema = Schema([Cadence.self, Beat.self, HistoryEntry.self, Discovery.self])
+    let schema = Schema([
+        Cadence.self, Beat.self, HistoryEntry.self, Discovery.self, DiscoveryLog.self,
+    ])
     let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     let container = try ModelContainer(for: schema, configurations: [config])
     return RhythmStore(context: ModelContext(container), calendar: cal)
@@ -198,13 +200,8 @@ struct DiscoveryTests {
     @Test("suggested frequency is the average interval between logs")
     func suggestedFrequency() throws {
         let store = try makeStore()
-        let discovery = Discovery(
-            name: "Descale", colorHex: "#A2845E", glyph: "☕️",
-            logs: [
-                DayMath.addDays(-120, to: today, calendar: cal),
-                DayMath.addDays(-48, to: today, calendar: cal),
-            ])
-        store.context.insert(discovery)
+        let discovery = makeDiscovery(
+            in: store, name: "Descale", logOffsets: [-120, -48])
 
         #expect(discovery.isReadyToConvert)
         #expect(discovery.suggestedFrequencyDays == 72)
@@ -215,7 +212,7 @@ struct DiscoveryTests {
         let store = try makeStore()
         let discovery = store.createDiscovery(
             name: "Filter", colorHex: "#64D2FF", glyph: "💧", logFirstOccurrenceToday: true)
-        #expect(discovery.logs.count == 1)
+        #expect(discovery.logCount == 1)
         #expect(!discovery.isReadyToConvert)
         #expect(discovery.suggestedFrequencyDays == nil)
 
@@ -223,16 +220,11 @@ struct DiscoveryTests {
         #expect(discovery.isReadyToConvert)
     }
 
-    @Test("conversion creates a cadence with a beat and removes the discovery")
+    @Test("conversion creates a cadence with a beat and removes the discovery and its logs")
     func convert() throws {
         let store = try makeStore()
-        let discovery = Discovery(
-            name: "Descale", colorHex: "#A2845E", glyph: "☕️",
-            logs: [
-                DayMath.addDays(-144, to: today, calendar: cal),
-                DayMath.addDays(-72, to: today, calendar: cal),
-            ])
-        store.context.insert(discovery)
+        let discovery = makeDiscovery(
+            in: store, name: "Descale", logOffsets: [-144, -72])
         let days = try #require(discovery.suggestedFrequencyDays)
 
         let cadence = store.convertDiscovery(
@@ -247,7 +239,20 @@ struct DiscoveryTests {
         #expect(cadence.frequency.approximateDays == 72)
         #expect(cadence.activeBeat != nil)
         #expect(try store.context.fetch(FetchDescriptor<Discovery>()).isEmpty)
+        #expect(try store.context.fetch(FetchDescriptor<DiscoveryLog>()).isEmpty)  // cascade
     }
+}
+
+@MainActor
+private func makeDiscovery(in store: RhythmStore, name: String, logOffsets: [Int]) -> Discovery {
+    let discovery = Discovery(name: name, colorHex: "#A2845E", glyph: "☕️")
+    store.context.insert(discovery)
+    for offset in logOffsets {
+        let log = DiscoveryLog(date: DayMath.addDays(offset, to: today, calendar: cal))
+        store.context.insert(log)
+        log.discovery = discovery
+    }
+    return discovery
 }
 
 @MainActor

@@ -14,6 +14,7 @@ struct RhythmApp: App {
             Beat.self,
             HistoryEntry.self,
             Discovery.self,
+            DiscoveryLog.self,
         ])
         let configuration = ModelConfiguration(
             schema: schema,
