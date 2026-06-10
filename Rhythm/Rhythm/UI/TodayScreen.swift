@@ -19,6 +19,9 @@ struct TodayScreen: View {
     @Query private var beats: [Beat]
     @State private var search = ""
     @State private var addMenuPresented = false
+    @State private var detailBeat: Beat?
+    @State private var snoozeBeat: Beat?
+    @State private var quickBeatPresented = false
 
     var body: some View {
         NavigationStack {
@@ -58,10 +61,19 @@ struct TodayScreen: View {
                 }
             }
             .confirmationDialog("Add to Rhythm", isPresented: $addMenuPresented, titleVisibility: .visible) {
-                // Wired to creation sheets in Stage 5.
+                // Cadence/Discovery wired in Stages 6–7.
                 Button("Cadence") {}
-                Button("Beat") {}
+                Button("Beat") { quickBeatPresented = true }
                 Button("Discovery") {}
+            }
+            .sheet(item: $detailBeat) { beat in
+                BeatDetailSheet(beat: beat) { snoozeBeat = $0 }
+            }
+            .sheet(item: $snoozeBeat) { beat in
+                SnoozeSheet(beat: beat)
+            }
+            .sheet(isPresented: $quickBeatPresented) {
+                QuickBeatSheet()
             }
         }
     }
@@ -73,6 +85,7 @@ struct TodayScreen: View {
         BeatRowView(beat: beat)
             .listRowInsets(EdgeInsets())
             .contentShape(.rect)
+            .onTapGesture { detailBeat = beat }
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 Button {
                     complete(beat)
@@ -112,18 +125,8 @@ struct TodayScreen: View {
         toasts.show("Skipped", systemImage: "forward.end", color: Theme.orange)
     }
 
-    /// Quick snooze: default length = grace. The full snooze sheet (Stage 5)
-    /// replaces this as the swipe target.
     private func snooze(_ beat: Beat) {
-        let date = DayMath.addDays(Grace.snoozeDays(forGrace: beat.grace), to: ticker.today)
-        store.snooze(beat, until: date)
-        toasts.show(
-            "Snoozed until \(snoozeLabel(date))", systemImage: "zzz", color: Theme.orange)
-    }
-
-    private func snoozeLabel(_ date: Date) -> String {
-        let off = DayMath.days(from: ticker.today, to: date)
-        return off == 1 ? "tomorrow" : date.formatted(.dateTime.month(.abbreviated).day())
+        snoozeBeat = beat
     }
 
     // MARK: Derived lists
