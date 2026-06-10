@@ -2,25 +2,27 @@
 //  RhythmApp.swift
 //  Rhythm
 //
-//  Created by Marshall Warners on 6/9/26.
-//
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct RhythmApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Cadence.self,
+            Beat.self,
+            HistoryEntry.self,
+            Discovery.self,
         ])
-        // CloudKit mirroring stays off until the real schema lands (Stage 2);
-        // .automatic would try to mirror the template Item model and crash.
-        let modelConfiguration = ModelConfiguration(
-            schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+        let configuration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .private("iCloud.marshallwarners.RhythmData")
+        )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

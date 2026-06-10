@@ -1,0 +1,237 @@
+//
+//  RhythmStore.swift
+//  Rhythm
+//
+//  The only write path to the model layer. Every mutation that changes
+//  beats/cadences/discoveries goes through here so that (a) the
+//  one-active-beat-per-cadence invariant holds and (b) notification/badge
+//  replanning can hang off a single hook.
+//
+
+import Foundation
+import SwiftData
+
+@MainActor
+@Observable
+final class RhythmStore {
+    let context: ModelContext
+    var calendar: Calendar
+
+    /// Called after every mutation. Stage 8 hangs notification/badge
+    /// replanning here.
+    var onMutation: (() -> Void)?
+
+    init(context: ModelContext, calendar: Calendar = .current) {
+        self.context = context
+        self.calendar = calendar
+    }
+
+    private var today: Date { DayMath.startOfDay(.now, calendar: calendar) }
+
+    private func mutated() {
+        try? context.save()
+        onMutation?()
+    }
+
+    // MARK: - Beat lifecycle
+
+    /// Complete a beat: record history, generate the next beat (linked), or
+    /// remove it (standalone).
+    func complete(_ beat: Beat) {
+        advance(beat, action: .completed)
+    }
+
+    /// Skip a beat: same generation rules as complete, recorded as skipped.
+    func skip(_ beat: Beat) {
+        advance(beat, action: .skipped)
+    }
+
+    private func advance(_ beat: Beat, action: HistoryAction) {
+        if let cadence = beat.cadence {
+            let entry = HistoryEntry(date: today, action: action)
+            context.insert(entry)
+            entry.cadence = cadence
+
+            let nextDue: Date =
+                switch cadence.scheduleType {
+                case .relative:
+                    // From today; anchor = the day you completed.
+                    DayMath.add(
+                        cadence.frequency, to: today,
+                        anchorDay: calendar.component(.day, from: today), calendar: calendar)
+                case .fixed:
+                    // From the previous due, regardless of completion date.
+                    DayMath.add(
+                        cadence.frequency, to: beat.due, anchorDay: cadence.anchorDay,
+                        calendar: calendar)
+                }
+
+            context.delete(beat)
+            insertActiveBeat(for: cadence, due: nextDue)
+        } else {
+            context.delete(beat)
+        }
+        mutated()
+    }
+
+    func snooze(_ beat: Beat, until date: Date) {
+        beat.snoozedUntil = DayMath.startOfDay(date, calendar: calendar)
+        mutated()
+    }
+
+    func resumeSnooze(_ beat: Beat) {
+        beat.snoozedUntil = nil
+        mutated()
+    }
+
+    /// Delete a standalone beat. Linked beats are never deleted directly —
+    /// they're replaced by advance() or removed with their cadence.
+    func deleteStandalone(_ beat: Beat) {
+        precondition(beat.cadence == nil, "Only standalone beats can be deleted directly")
+        context.delete(beat)
+        mutated()
+    }
+
+    func createStandaloneBeat(
+        name: String, colorHex: String, glyph: String, due: Date, grace: Int
+    ) -> Beat {
+        let beat = Beat(
+            name: name, colorHex: colorHex, glyph: glyph,
+            due: DayMath.startOfDay(due, calendar: calendar), grace: grace)
+        context.insert(beat)
+        mutated()
+        return beat
+    }
+
+    /// Persist edits from the beat detail editor. Affects only this beat.
+    func saveEdits(_ beat: Beat) {
+        mutated()
+    }
+
+    // MARK: - Cadences
+
+    @discardableResult
+    func createCadence(
+        name: String,
+        colorHex: String,
+        glyph: String,
+        note: String = "",
+        scheduleType: ScheduleType,
+        frequency: Frequency,
+        grace: Int,
+        firstDue: Date,
+        notify: NotifyPreferences
+    ) -> Cadence {
+        let due = DayMath.startOfDay(firstDue, calendar: calendar)
+        let cadence = Cadence(
+            name: name, colorHex: colorHex, glyph: glyph, note: note,
+            scheduleType: scheduleType, frequency: frequency, grace: grace,
+            anchorDay: calendar.component(.day, from: due), notify: notify)
+        context.insert(cadence)
+        insertActiveBeat(for: cadence, due: due)
+        mutated()
+        return cadence
+    }
+
+    /// Edit a cadence definition. The active beat picks up identity, grace,
+    /// and (optionally) a new due date; history is untouched.
+    func updateCadence(
+        _ cadence: Cadence,
+        name: String,
+        colorHex: String,
+        glyph: String,
+        note: String,
+        scheduleType: ScheduleType,
+        frequency: Frequency,
+        grace: Int,
+        due: Date?,
+        notify: NotifyPreferences
+    ) {
+        cadence.name = name
+        cadence.colorHex = colorHex
+        cadence.glyph = glyph
+        cadence.note = note
+        cadence.scheduleType = scheduleType
+        cadence.frequency = frequency
+        cadence.grace = grace
+        cadence.notify = notify
+
+        if let beat = cadence.activeBeat {
+            beat.name = name
+            beat.colorHex = colorHex
+            beat.glyph = glyph
+            beat.note = note
+            beat.grace = grace
+            if let due {
+                let day = DayMath.startOfDay(due, calendar: calendar)
+                beat.due = day
+                cadence.anchorDay = calendar.component(.day, from: day)
+            }
+        } else if let due {
+            // Self-heal the invariant if the active beat ever went missing.
+            let day = DayMath.startOfDay(due, calendar: calendar)
+            insertActiveBeat(for: cadence, due: day)
+            cadence.anchorDay = calendar.component(.day, from: day)
+        }
+        mutated()
+    }
+
+    func deleteCadence(_ cadence: Cadence) {
+        context.delete(cadence)  // cascades to beats + history
+        mutated()
+    }
+
+    /// Enforces the one-active-beat invariant: inserting the new beat clears
+    /// any others first.
+    private func insertActiveBeat(for cadence: Cadence, due: Date) {
+        for stray in cadence.beats ?? [] {
+            context.delete(stray)
+        }
+        let beat = Beat(generatedFor: cadence, due: due)
+        context.insert(beat)
+        beat.cadence = cadence
+    }
+
+    // MARK: - Discoveries
+
+    @discardableResult
+    func createDiscovery(
+        name: String, colorHex: String, glyph: String, logFirstOccurrenceToday: Bool
+    ) -> Discovery {
+        let discovery = Discovery(
+            name: name, colorHex: colorHex, glyph: glyph,
+            logs: logFirstOccurrenceToday ? [today] : [])
+        context.insert(discovery)
+        mutated()
+        return discovery
+    }
+
+    func logOccurrence(_ discovery: Discovery) {
+        discovery.logs.append(today)
+        mutated()
+    }
+
+    func deleteDiscovery(_ discovery: Discovery) {
+        context.delete(discovery)
+        mutated()
+    }
+
+    /// Convert a discovery into a real cadence; the discovery is removed.
+    @discardableResult
+    func convertDiscovery(
+        _ discovery: Discovery,
+        scheduleType: ScheduleType,
+        frequency: Frequency,
+        grace: Int,
+        firstDue: Date,
+        notify: NotifyPreferences
+    ) -> Cadence {
+        let cadence = createCadence(
+            name: discovery.name, colorHex: discovery.colorHex, glyph: discovery.glyph,
+            note: discovery.note, scheduleType: scheduleType, frequency: frequency,
+            grace: grace, firstDue: firstDue, notify: notify)
+        context.delete(discovery)
+        mutated()
+        return cadence
+    }
+}
