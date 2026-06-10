@@ -37,21 +37,16 @@ struct GlyphTile: View {
 
 /// Trailing due chip. `due`/`late` are filled (white on solid color);
 /// `almost`/`overdue` are tinted; `later` is neutral. Snoozed beats keep
-/// their tier coloring (computed from the snooze date) plus a 💤 icon.
+/// their tier coloring (computed from the snooze date); the "Originally
+/// due" row subtitle is the snooze indicator.
 struct DueChip: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let urgency: Urgency
 
     var body: some View {
-        HStack(spacing: 4) {
-            if urgency.isSnoozed {
-                Image(systemName: "zzz")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            Text(urgency.chipLabel)
-        }
-        .font(.system(size: 12.5, weight: .semibold))
+        Text(urgency.chipLabel)
+            .font(.system(size: 12.5, weight: .semibold))
         .foregroundStyle(foreground)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
@@ -87,7 +82,7 @@ struct BeatRowView: View {
 
     var body: some View {
         let urgency = beat.urgency(today: ticker.today)
-        HStack(alignment: settings.density == .comfortable ? .top : .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             GlyphTile(glyph: beat.glyph, colorHex: beat.colorHex)
             VStack(alignment: .leading, spacing: 3) {
                 Text(beat.name)

@@ -91,7 +91,7 @@ struct CadencesScreen: View {
 
     private func row(for cadence: Cadence) -> some View {
         NavigationLink(value: cadence) {
-            HStack(alignment: settings.density == .comfortable ? .top : .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 GlyphTile(glyph: cadence.glyph, colorHex: cadence.colorHex)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(cadence.name)
