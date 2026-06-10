@@ -13,6 +13,7 @@ struct BeatDetailSheet: View {
     @Environment(RhythmStore.self) private var store
     @Environment(ToastCenter.self) private var toasts
     @Environment(DayTicker.self) private var ticker
+    @Environment(Navigator.self) private var navigator
     @Environment(\.dismiss) private var dismiss
 
     let beat: Beat
@@ -45,7 +46,27 @@ struct BeatDetailSheet: View {
 
                 if let cadence = beat.cadence {
                     Section {
-                        LabeledContent("Part of cadence", value: cadence.name)
+                        Button {
+                            save()
+                            dismiss()
+                            navigator.openCadence(cadence)
+                        } label: {
+                            HStack {
+                                Label {
+                                    Text("Part of cadence")
+                                        .foregroundStyle(.primary)
+                                } icon: {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .foregroundStyle(Theme.accent)
+                                }
+                                Spacer()
+                                Text(cadence.name)
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
                     }
                 }
 

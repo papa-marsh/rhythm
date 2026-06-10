@@ -13,6 +13,7 @@ struct RhythmApp: App {
     @State private var settings = AppSettings()
     @State private var ticker = DayTicker()
     @State private var toasts = ToastCenter()
+    @State private var navigator = Navigator()
 
     init() {
         let schema = Schema([
@@ -44,6 +45,7 @@ struct RhythmApp: App {
                 .environment(settings)
                 .environment(ticker)
                 .environment(toasts)
+                .environment(navigator)
                 #if DEBUG
                     .task { seedIfEmpty() }
                 #endif

@@ -11,20 +11,22 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(DayTicker.self) private var ticker
+    @Environment(Navigator.self) private var navigator
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        TabView {
-            Tab("Today", systemImage: "calendar") {
+        @Bindable var navigator = navigator
+        TabView(selection: $navigator.tab) {
+            Tab("Today", systemImage: "calendar", value: AppTab.today) {
                 TodayScreen()
             }
-            Tab("Cadences", systemImage: "arrow.triangle.2.circlepath") {
+            Tab("Cadences", systemImage: "arrow.triangle.2.circlepath", value: AppTab.cadences) {
                 CadencesScreen()
             }
-            Tab("Discovery", systemImage: "safari") {
+            Tab("Discovery", systemImage: "safari", value: AppTab.discovery) {
                 DiscoveryScreen()
             }
-            Tab("Settings", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
                 SettingsScreen()
             }
         }
@@ -43,17 +45,7 @@ struct RootView: View {
     }
 }
 
-// MARK: - Placeholders (filled in Stages 6–7)
-
-struct CadencesScreen: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Cadences", systemImage: "arrow.triangle.2.circlepath",
-                description: Text("Coming in Stage 6"))
-        }
-    }
-}
+// MARK: - Placeholder (filled in Stage 7)
 
 struct DiscoveryScreen: View {
     var body: some View {
