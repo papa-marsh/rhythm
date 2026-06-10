@@ -24,12 +24,11 @@ enum CadenceSort: String, CaseIterable {
 
 struct CadencesScreen: View {
     @Environment(Navigator.self) private var navigator
+    @Environment(AppSettings.self) private var settings
 
     @Query private var cadences: [Cadence]
     @State private var search = ""
     @State private var sort: CadenceSort = .name
-    @State private var sortMenuPresented = false
-    @State private var addMenuPresented = false
     @State private var createPresented = false
     @State private var quickBeatPresented = false
     @State private var createDiscoveryPresented = false
@@ -54,31 +53,29 @@ struct CadencesScreen: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Sort", systemImage: "arrow.up.arrow.down") {
-                        sortMenuPresented = true
+                    Menu {
+                        Picker("Sort cadences", selection: $sort) {
+                            ForEach(CadenceSort.allCases, id: \.self) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Add", systemImage: "plus") {
-                        addMenuPresented = true
+                    Menu {
+                        Button("Cadence", systemImage: "arrow.triangle.2.circlepath") {
+                            createPresented = true
+                        }
+                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
+                        Button("Discovery", systemImage: "target") {
+                            createDiscoveryPresented = true
+                        }
+                    } label: {
+                        Label("Add", systemImage: "plus")
                     }
                 }
-            }
-            .confirmationDialog(
-                "Sort cadences", isPresented: $sortMenuPresented, titleVisibility: .visible
-            ) {
-                ForEach(CadenceSort.allCases, id: \.self) { option in
-                    Button(option == sort ? "✓ \(option.label)" : option.label) {
-                        sort = option
-                    }
-                }
-            }
-            .confirmationDialog(
-                "Add to Rhythm", isPresented: $addMenuPresented, titleVisibility: .visible
-            ) {
-                Button("Cadence") { createPresented = true }
-                Button("Beat") { quickBeatPresented = true }
-                Button("Discovery") { createDiscoveryPresented = true }
             }
             .sheet(isPresented: $createPresented) {
                 CreateCadenceSheet()
@@ -94,21 +91,28 @@ struct CadencesScreen: View {
 
     private func row(for cadence: Cadence) -> some View {
         NavigationLink(value: cadence) {
-            HStack(spacing: 12) {
+            HStack(alignment: settings.density == .comfortable ? .top : .center, spacing: 12) {
                 GlyphTile(glyph: cadence.glyph, colorHex: cadence.colorHex)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(cadence.name)
                         .font(.system(size: 17, weight: .semibold))
-                        .lineLimit(1)
+                        .lineLimit(settings.density == .comfortable ? 2 : 1)
+                    if settings.density == .comfortable {
+                        frequencyChip(for: cadence)
+                    }
                     if !cadence.note.isEmpty {
                         Text(cadence.note)
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .lineLimit(settings.density == .comfortable ? 3 : 1)
                     }
                 }
-                Spacer(minLength: 8)
-                frequencyChip(for: cadence)
+                if settings.density == .compact {
+                    Spacer(minLength: 8)
+                    frequencyChip(for: cadence)
+                } else {
+                    Spacer(minLength: 0)
+                }
             }
         }
     }

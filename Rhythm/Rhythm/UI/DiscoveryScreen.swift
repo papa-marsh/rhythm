@@ -186,8 +186,6 @@ private struct DiscoveryCard: View {
             .foregroundStyle(.secondary)
             + Text(nice.longLabel)
             .fontWeight(.semibold)
-            + Text(". Convert to lock it in.")
-            .foregroundStyle(.secondary)
     }
 
     private var progressDots: some View {

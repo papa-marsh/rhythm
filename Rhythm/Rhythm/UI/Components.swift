@@ -77,25 +77,30 @@ struct DueChip: View {
 // MARK: - Beat row
 
 /// A beat row: leading urgency bar · glyph tile · name (+ note, + snooze
-/// line) · due chip. The locked "Bar" urgency style.
+/// line) · due chip. The locked "Bar" urgency style. In Comfortable
+/// density the chip moves below the title so text gets the full width.
 struct BeatRowView: View {
     @Environment(DayTicker.self) private var ticker
+    @Environment(AppSettings.self) private var settings
 
     let beat: Beat
 
     var body: some View {
         let urgency = beat.urgency(today: ticker.today)
-        HStack(spacing: 12) {
+        HStack(alignment: settings.density == .comfortable ? .top : .center, spacing: 12) {
             GlyphTile(glyph: beat.glyph, colorHex: beat.colorHex)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(beat.name)
                     .font(.system(size: 16.5, weight: .semibold))
-                    .lineLimit(1)
+                    .lineLimit(settings.density == .comfortable ? 2 : 1)
+                if settings.density == .comfortable {
+                    DueChip(urgency: urgency)
+                }
                 if !beat.note.isEmpty {
                     Text(beat.note)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(settings.density == .comfortable ? 3 : 1)
                 }
                 if urgency.isSnoozed {
                     HStack(spacing: 5) {
@@ -110,8 +115,12 @@ struct BeatRowView: View {
                     .lineLimit(1)
                 }
             }
-            Spacer(minLength: 8)
-            DueChip(urgency: urgency)
+            if settings.density == .compact {
+                Spacer(minLength: 8)
+                DueChip(urgency: urgency)
+            } else {
+                Spacer(minLength: 0)
+            }
         }
         .padding(.leading, 16)
         .padding(.trailing, 16)
@@ -119,11 +128,13 @@ struct BeatRowView: View {
         .frame(minHeight: 56)
         .overlay(alignment: .leading) {
             if urgency.tier.isUrgent {
+                // Inset enough that iOS 26's large card corner radius
+                // doesn't shave the bar on the first/last rows.
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(Theme.tierColor(urgency.tier))
                     .frame(width: 4)
-                    .padding(.vertical, 10)
-                    .padding(.leading, 4)
+                    .padding(.vertical, 12)
+                    .padding(.leading, 6)
             }
         }
     }

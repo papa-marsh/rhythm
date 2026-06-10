@@ -29,6 +29,17 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    Picker("Display density", selection: $settings.density) {
+                        ForEach(DisplayDensity.allCases, id: \.self) { density in
+                            Text(density.displayName).tag(density)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                } footer: {
+                    Text("Comfortable moves due dates below titles, giving text the full width.")
+                }
+
+                Section {
                     Toggle("Show emojis", isOn: $settings.showEmoji)
                 } footer: {
                     Text("Display emojis next to beats and cadences.")

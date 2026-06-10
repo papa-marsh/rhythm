@@ -70,14 +70,12 @@ struct CadenceDetailScreen: View {
         }
     }
 
-    /// Instant snooze: default length = the beat's grace period.
+    /// Instant snooze: grace-length, compounding from the effective due date.
     private func quickSnooze(_ beat: Beat) {
-        let date = DayMath.addDays(Grace.snoozeDays(forGrace: beat.grace), to: ticker.today)
-        store.snooze(beat, until: date)
-        let label =
-            DayMath.days(from: ticker.today, to: date) == 1
-            ? "tomorrow" : date.formatted(.dateTime.month(.abbreviated).day())
-        toasts.show("Snoozed until \(label)", systemImage: "zzz", color: Theme.orange)
+        let date = store.quickSnooze(beat)
+        toasts.show(
+            "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
+            systemImage: "zzz", color: Theme.orange)
     }
 
     // MARK: Sections

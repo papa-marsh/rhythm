@@ -245,9 +245,7 @@ struct BeatDetailSheet: View {
 
             Button {
                 save()
-                let date = DayMath.addDays(
-                    Grace.snoozeDays(forGrace: draft.grace), to: ticker.today)
-                store.snooze(beat, until: date)
+                let date = store.quickSnooze(beat)
                 toasts.show(
                     "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
                     systemImage: "zzz", color: Theme.orange)

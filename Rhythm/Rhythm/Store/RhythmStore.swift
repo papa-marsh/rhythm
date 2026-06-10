@@ -86,6 +86,21 @@ final class RhythmStore {
         mutated()
     }
 
+    /// One-tap snooze: grace-period length, measured from today when the
+    /// beat is due/overdue, or from the effective due date (including an
+    /// existing snooze) when that's in the future — so repeated snoozes
+    /// compound: due yesterday with grace 3 → +3 days, again → +6 days.
+    @discardableResult
+    func quickSnooze(_ beat: Beat) -> Date {
+        let effective = Urgency.effectiveDue(
+            due: beat.due, snoozedUntil: beat.snoozedUntil, today: today, calendar: calendar)
+        let base = max(today, effective)
+        let date = DayMath.addDays(
+            Grace.snoozeDays(forGrace: beat.grace), to: base, calendar: calendar)
+        snooze(beat, until: date)
+        return date
+    }
+
     func resumeSnooze(_ beat: Beat) {
         beat.snoozedUntil = nil
         mutated()

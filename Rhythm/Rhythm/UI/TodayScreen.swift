@@ -18,7 +18,6 @@ struct TodayScreen: View {
 
     @Query private var beats: [Beat]
     @State private var search = ""
-    @State private var addMenuPresented = false
     @State private var detailBeat: Beat?
     @State private var snoozeBeat: Beat?
     @State private var quickBeatPresented = false
@@ -55,15 +54,18 @@ struct TodayScreen: View {
             .searchToolbarBehavior(.minimize)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Add", systemImage: "plus") {
-                        addMenuPresented = true
+                    Menu {
+                        Button("Cadence", systemImage: "arrow.triangle.2.circlepath") {
+                            createCadencePresented = true
+                        }
+                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
+                        Button("Discovery", systemImage: "target") {
+                            createDiscoveryPresented = true
+                        }
+                    } label: {
+                        Label("Add", systemImage: "plus")
                     }
                 }
-            }
-            .confirmationDialog("Add to Rhythm", isPresented: $addMenuPresented, titleVisibility: .visible) {
-                Button("Cadence") { createCadencePresented = true }
-                Button("Beat") { quickBeatPresented = true }
-                Button("Discovery") { createDiscoveryPresented = true }
             }
             .sheet(item: $detailBeat) { beat in
                 BeatDetailSheet(beat: beat) { snoozeBeat = $0 }
@@ -130,8 +132,12 @@ struct TodayScreen: View {
         toasts.show("Skipped", systemImage: "forward.end", color: Theme.orange)
     }
 
+    /// Instant grace-length snooze (compounds from the effective due date).
     private func snooze(_ beat: Beat) {
-        snoozeBeat = beat
+        let date = store.quickSnooze(beat)
+        toasts.show(
+            "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
+            systemImage: "zzz", color: Theme.orange)
     }
 
     // MARK: Derived lists
@@ -209,9 +215,11 @@ struct TodayScreen: View {
     }
 
     private func countDot(count: Int, label: String, color: Color) -> some View {
+        // Explicit colors: section headers otherwise dim this text too far
+        // in dark mode.
         let text: Text =
-            Text("\(count)").fontWeight(.semibold).foregroundStyle(.primary)
-            + Text(" \(label)").foregroundStyle(.secondary)
+            Text("\(count)").fontWeight(.semibold).foregroundStyle(Color(.label))
+            + Text(" \(label)").foregroundStyle(Color(.secondaryLabel))
         return HStack(spacing: 7) {
             Circle().fill(color).frame(width: 8, height: 8)
             text
@@ -227,7 +235,7 @@ struct TodayScreen: View {
                     .foregroundStyle(Theme.green)
                 Text("All caught up")
                     .font(.system(size: 19, weight: .bold))
-                Text("Nothing’s within its grace period.\nEnjoy the quiet.")
+                Text("Keep up the good work")
                     .font(.system(size: 14.5))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

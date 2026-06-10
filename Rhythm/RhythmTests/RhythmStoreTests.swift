@@ -180,6 +180,33 @@ struct BeatLifecycleTests {
         #expect(beat.effectiveDue(today: today, calendar: cal) == beat.due)
     }
 
+    @Test("quick snooze compounds from the effective due date")
+    func quickSnoozeCompounds() throws {
+        let store = try makeStore()
+        // Due yesterday, grace 3: first snooze lands 3 days from today.
+        let beat = store.createStandaloneBeat(
+            name: "Books", colorHex: "#AF52DE", glyph: "📚",
+            due: DayMath.addDays(-1, to: today, calendar: cal), grace: 3)
+
+        let first = store.quickSnooze(beat)
+        #expect(first == DayMath.addDays(3, to: today, calendar: cal))
+
+        // Second snooze counts from the existing snooze date: 6 days out.
+        let second = store.quickSnooze(beat)
+        #expect(second == DayMath.addDays(6, to: today, calendar: cal))
+    }
+
+    @Test("quick snooze on a future beat counts from its due date")
+    func quickSnoozeFutureBase() throws {
+        let store = try makeStore()
+        let due = DayMath.addDays(2, to: today, calendar: cal)
+        let beat = store.createStandaloneBeat(
+            name: "Dentist", colorHex: "#FF2D55", glyph: "🦷", due: due, grace: 3)
+
+        // Due in 2 days, grace 3 → snoozed until 5 days from today.
+        #expect(store.quickSnooze(beat) == DayMath.addDays(3, to: due, calendar: cal))
+    }
+
     @Test("deleting a cadence cascades to its beat and history")
     func deleteCascades() throws {
         let store = try makeStore()

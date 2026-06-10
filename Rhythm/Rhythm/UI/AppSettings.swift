@@ -8,6 +8,17 @@
 
 import SwiftUI
 
+enum DisplayDensity: String, CaseIterable {
+    case compact, comfortable
+
+    var displayName: String {
+        switch self {
+        case .compact: "Compact"
+        case .comfortable: "Comfortable"
+        }
+    }
+}
+
 enum Appearance: String, CaseIterable {
     case light, dark, system
 
@@ -38,6 +49,9 @@ final class AppSettings {
     }
     var showEmoji: Bool {
         didSet { Self.defaults.set(showEmoji, forKey: "showEmoji") }
+    }
+    var density: DisplayDensity {
+        didSet { Self.defaults.set(density.rawValue, forKey: "density") }
     }
     var defaultScheduleType: ScheduleType {
         didSet { Self.defaults.set(defaultScheduleType.rawValue, forKey: "defaultScheduleType") }
@@ -72,6 +86,7 @@ final class AppSettings {
         let d = Self.defaults
         appearance = Appearance(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
         showEmoji = d.object(forKey: "showEmoji") as? Bool ?? true
+        density = DisplayDensity(rawValue: d.string(forKey: "density") ?? "") ?? .compact
         defaultScheduleType =
             ScheduleType(rawValue: d.string(forKey: "defaultScheduleType") ?? "") ?? .relative
         defaultNotifyAlmost = d.object(forKey: "defaultNotifyAlmost") as? Bool ?? false

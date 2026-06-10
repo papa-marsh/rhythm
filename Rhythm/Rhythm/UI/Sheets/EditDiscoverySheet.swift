@@ -42,21 +42,17 @@ struct EditDiscoverySheet: View {
                 }
 
                 Section {
-                    if sortedLogs.isEmpty {
-                        Text("No occurrences logged yet.")
-                            .font(.system(size: 14.5))
-                            .foregroundStyle(.secondary)
+                    ForEach(0..<max(2, sortedLogs.count), id: \.self) { index in
+                        if index < sortedLogs.count {
+                            loggedRow(sortedLogs[index], ordinal: Self.ordinal(index))
+                        } else {
+                            unloggedRow(ordinal: Self.ordinal(index))
+                        }
                     }
-                    ForEach(sortedLogs, id: \.id) { log in
-                        DatePicker(
-                            "Logged", selection: logDateBinding(log), in: ...ticker.today,
-                            displayedComponents: .date)
-                    }
-                    .onDelete(perform: deleteLogs)
                 } header: {
                     Text("Logged occurrences")
                 } footer: {
-                    Text("Swipe a row to remove it. Dates feed the suggested frequency.")
+                    Text("Dates feed the suggested frequency.")
                 }
 
                 Section {
@@ -110,18 +106,47 @@ struct EditDiscoverySheet: View {
         note = discovery.note
     }
 
+    private func loggedRow(_ log: DiscoveryLog, ordinal: String) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                withAnimation(.snappy) { store.deleteLog(log) }
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Theme.red)
+            }
+            .buttonStyle(.plain)
+            DatePicker(
+                ordinal, selection: logDateBinding(log), in: ...ticker.today,
+                displayedComponents: .date)
+        }
+    }
+
+    private func unloggedRow(ordinal: String) -> some View {
+        LabeledContent(ordinal) {
+            Button("Log") {
+                withAnimation(.snappy) { store.logOccurrence(discovery) }
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .fontWeight(.medium)
+        }
+    }
+
+    private static func ordinal(_ index: Int) -> String {
+        let names = [
+            "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth",
+            "Ninth", "Tenth",
+        ]
+        return index < names.count ? names[index] : "Occurrence \(index + 1)"
+    }
+
     private func logDateBinding(_ log: DiscoveryLog) -> Binding<Date> {
         Binding {
             log.date
         } set: {
             store.setLogDate(log, to: $0)
-        }
-    }
-
-    private func deleteLogs(at offsets: IndexSet) {
-        let logs = sortedLogs
-        for index in offsets {
-            store.deleteLog(logs[index])
         }
     }
 }
