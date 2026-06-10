@@ -28,10 +28,6 @@ struct TodayScreen: View {
     var body: some View {
         NavigationStack {
             List {
-                if !urgent.isEmpty || !later.isEmpty {
-                    summaryStrip
-                }
-
                 if urgent.isEmpty {
                     allCaughtUp
                 } else {
@@ -39,6 +35,8 @@ struct TodayScreen: View {
                         ForEach(urgent, id: \.id) { beat in
                             row(for: beat)
                         }
+                    } header: {
+                        summaryStrip
                     }
                 }
 
@@ -206,14 +204,13 @@ struct TodayScreen: View {
                 countDot(count: upcomingCount, label: "upcoming", color: Theme.accent)
             }
         }
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
-        .listRowSeparator(.hidden)
+        .padding(.bottom, 6)
+        .textCase(nil)
     }
 
     private func countDot(count: Int, label: String, color: Color) -> some View {
         let text: Text =
-            Text("\(count)").fontWeight(.semibold)
+            Text("\(count)").fontWeight(.semibold).foregroundStyle(.primary)
             + Text(" \(label)").foregroundStyle(.secondary)
         return HStack(spacing: 7) {
             Circle().fill(color).frame(width: 8, height: 8)

@@ -38,27 +38,34 @@ final class RhythmStore {
     /// Complete a beat: record history, generate the next beat (linked), or
     /// remove it (standalone).
     func complete(_ beat: Beat) {
-        advance(beat, action: .completed)
+        advance(beat, action: .completed, asOf: today)
+    }
+
+    /// Complete a beat retroactively. Relative schedules count the next beat
+    /// from the backdated completion day.
+    func complete(_ beat: Beat, on date: Date) {
+        let day = min(DayMath.startOfDay(date, calendar: calendar), today)
+        advance(beat, action: .completed, asOf: day)
     }
 
     /// Skip a beat: same generation rules as complete, recorded as skipped.
     func skip(_ beat: Beat) {
-        advance(beat, action: .skipped)
+        advance(beat, action: .skipped, asOf: today)
     }
 
-    private func advance(_ beat: Beat, action: HistoryAction) {
+    private func advance(_ beat: Beat, action: HistoryAction, asOf day: Date) {
         if let cadence = beat.cadence {
-            let entry = HistoryEntry(date: today, action: action)
+            let entry = HistoryEntry(date: day, action: action)
             context.insert(entry)
             entry.cadence = cadence
 
             let nextDue: Date =
                 switch cadence.scheduleType {
                 case .relative:
-                    // From today; anchor = the day you completed.
+                    // From the completion day; anchor = the day you completed.
                     DayMath.add(
-                        cadence.frequency, to: today,
-                        anchorDay: calendar.component(.day, from: today), calendar: calendar)
+                        cadence.frequency, to: day,
+                        anchorDay: calendar.component(.day, from: day), calendar: calendar)
                 case .fixed:
                     // From the previous due, regardless of completion date.
                     DayMath.add(
@@ -209,6 +216,26 @@ final class RhythmStore {
 
     func logOccurrence(_ discovery: Discovery) {
         appendLog(to: discovery, date: today)
+        mutated()
+    }
+
+    func updateDiscovery(
+        _ discovery: Discovery, name: String, colorHex: String, glyph: String, note: String
+    ) {
+        discovery.name = name
+        discovery.colorHex = colorHex
+        discovery.glyph = glyph
+        discovery.note = note
+        mutated()
+    }
+
+    func setLogDate(_ log: DiscoveryLog, to date: Date) {
+        log.date = DayMath.startOfDay(date, calendar: calendar)
+        mutated()
+    }
+
+    func deleteLog(_ log: DiscoveryLog) {
+        context.delete(log)
         mutated()
     }
 

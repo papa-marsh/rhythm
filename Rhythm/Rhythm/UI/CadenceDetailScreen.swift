@@ -17,7 +17,6 @@ struct CadenceDetailScreen: View {
     let cadence: Cadence
 
     @State private var editPresented = false
-    @State private var snoozeBeat: Beat?
     @State private var deleteConfirmPresented = false
 
     var body: some View {
@@ -57,9 +56,6 @@ struct CadenceDetailScreen: View {
         .sheet(isPresented: $editPresented) {
             CreateCadenceSheet(editing: cadence)
         }
-        .sheet(item: $snoozeBeat) { beat in
-            SnoozeSheet(beat: beat)
-        }
         .confirmationDialog(
             "Delete “\(cadence.name)”?", isPresented: $deleteConfirmPresented,
             titleVisibility: .visible
@@ -70,8 +66,18 @@ struct CadenceDetailScreen: View {
                 toasts.show("Cadence deleted", systemImage: "trash", color: Theme.red)
             }
         } message: {
-            Text("Its beat and history go with it.")
+            Text("This cadence’s beat history will also be deleted.")
         }
+    }
+
+    /// Instant snooze: default length = the beat's grace period.
+    private func quickSnooze(_ beat: Beat) {
+        let date = DayMath.addDays(Grace.snoozeDays(forGrace: beat.grace), to: ticker.today)
+        store.snooze(beat, until: date)
+        let label =
+            DayMath.days(from: ticker.today, to: date) == 1
+            ? "tomorrow" : date.formatted(.dateTime.month(.abbreviated).day())
+        toasts.show("Snoozed until \(label)", systemImage: "zzz", color: Theme.orange)
     }
 
     // MARK: Sections
@@ -115,16 +121,24 @@ struct CadenceDetailScreen: View {
                     store.complete(beat)
                     toasts.show(.completed(nextScheduled: true))
                 } label: {
-                    Label("Complete", systemImage: "checkmark")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 7) {
+                        Image(systemName: "checkmark")
+                        Text("Complete")
+                    }
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 26)
                 }
                 .buttonStyle(.borderedProminent)
                 Button {
-                    snoozeBeat = beat
+                    quickSnooze(beat)
                 } label: {
-                    Label("Snooze", systemImage: "zzz")
-                        .fontWeight(.semibold)
+                    HStack(spacing: 7) {
+                        Image(systemName: "zzz")
+                        Text("Snooze")
+                    }
+                    .fontWeight(.semibold)
+                    .frame(height: 26)
                 }
                 .buttonStyle(.bordered)
             }

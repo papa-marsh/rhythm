@@ -129,7 +129,8 @@ struct ConvertDiscoverySheet: View {
 
     private var banner: Text {
         Text("Based on \(discovery.logCount) logged occurrences, Rhythm suggests ")
-            + Text("every \(suggested) days").fontWeight(.semibold)
+            + Text(Frequency.suggested(forAverageDays: suggested).longLabel)
+            .fontWeight(.semibold)
             + Text(". Adjust if you like.")
     }
 
@@ -138,7 +139,7 @@ struct ConvertDiscoverySheet: View {
         loaded = true
         name = discovery.name
         scheduleType = settings.defaultScheduleType
-        let f = Frequency(approximateDays: suggested)
+        let f = Frequency.suggested(forAverageDays: suggested)
         everyN = f.n
         everyUnit = f.unit
     }

@@ -72,6 +72,26 @@ struct Frequency: Equatable, Codable, Sendable {
     /// Derived day count for grace math and stats only.
     var approximateDays: Int { n * unit.approximateDays }
 
+    /// A human-friendly frequency for a measured average interval, used by
+    /// discovery suggestions. Prefers the largest unit whose rounded value
+    /// stays within ~10% of the measured interval: 72d → 10 weeks,
+    /// 58d → 2 months, 190d → 6 months, 9d → 9 days.
+    static func suggested(forAverageDays days: Int) -> Frequency {
+        let measured = max(1, days)
+        let tolerance = 0.10
+
+        for unit in [FrequencyUnit.years, .months, .weeks] {
+            let n = Int((Double(measured) / Double(unit.approximateDays)).rounded())
+            guard n >= 1 else { continue }
+            let rounded = n * unit.approximateDays
+            let error = Double(abs(rounded - measured)) / Double(measured)
+            if error <= tolerance {
+                return Frequency(n: n, unit: unit)
+            }
+        }
+        return Frequency(n: measured, unit: .days)
+    }
+
     /// Short label for list chips: "Weekly", "3 weeks".
     var shortLabel: String {
         n == 1 ? unit.adverb : "\(n) \(unit.rawValue)"

@@ -77,6 +77,22 @@ struct FrequencyTests {
         #expect(Frequency(n: 5, unit: .weeks).approximateDays == 35)
         #expect(Frequency(n: 3, unit: .months).approximateDays == 90)
     }
+
+    @Test("discovery suggestions round to friendly frequencies", arguments: [
+        (72, 10, FrequencyUnit.weeks),  // 70d is 2.8% off — nicer than "72 days"
+        (58, 2, FrequencyUnit.months),  // 60d is 3.4% off
+        (190, 6, FrequencyUnit.months),  // 180d is 5.3% off
+        (365, 1, FrequencyUnit.years),
+        (350, 1, FrequencyUnit.years),  // 4.3% off
+        (30, 1, FrequencyUnit.months),
+        (13, 2, FrequencyUnit.weeks),  // 14d is 7.7% off
+        (7, 1, FrequencyUnit.weeks),
+        (9, 9, FrequencyUnit.days),  // 7d would be 22% off — keep exact days
+        (3, 3, FrequencyUnit.days),
+    ])
+    func suggestedRounding(measured: Int, n: Int, unit: FrequencyUnit) {
+        #expect(Frequency.suggested(forAverageDays: measured) == Frequency(n: n, unit: unit))
+    }
 }
 
 // MARK: - Day math

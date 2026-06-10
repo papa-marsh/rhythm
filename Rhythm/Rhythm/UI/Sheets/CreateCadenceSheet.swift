@@ -60,8 +60,6 @@ struct CreateCadenceSheet: View {
 
                 Section {
                     StepperRow(label: "Grace period", value: graceBinding)
-                } header: {
-                    Text("Grace period")
                 } footer: {
                     Text("How early a beat lands on your radar — and its snooze length.")
                 }

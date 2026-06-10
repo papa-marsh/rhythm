@@ -36,7 +36,8 @@ struct GlyphTile: View {
 // MARK: - Due chip
 
 /// Trailing due chip. `due`/`late` are filled (white on solid color);
-/// `almost`/`overdue` are tinted; `later` and snoozed are neutral.
+/// `almost`/`overdue` are tinted; `later` is neutral. Snoozed beats keep
+/// their tier coloring (computed from the snooze date) plus a 💤 icon.
 struct DueChip: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -57,7 +58,7 @@ struct DueChip: View {
         .background(background, in: .rect(cornerRadius: 7, style: .continuous))
     }
 
-    private var isNeutral: Bool { urgency.isSnoozed || urgency.tier == .later }
+    private var isNeutral: Bool { urgency.tier == .later }
     private var isFilled: Bool { urgency.tier == .due || urgency.tier == .late }
 
     private var foreground: Color {

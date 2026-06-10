@@ -92,6 +92,32 @@ struct BeatLifecycleTests {
         #expect(try #require(cadence.activeBeat).due == date(2026, 3, 31))
     }
 
+    @Test("backdated completion counts relative schedules from that day")
+    func backdatedComplete() throws {
+        let store = try makeStore()
+        let cadence = store.createCadence(
+            name: "Mow", colorHex: "#34C759", glyph: "🌿",
+            scheduleType: .relative, frequency: Frequency(n: 1, unit: .weeks),
+            grace: 1, firstDue: today, notify: .standard)
+
+        let threeDaysAgo = DayMath.addDays(-3, to: today, calendar: cal)
+        store.complete(try #require(cadence.activeBeat), on: threeDaysAgo)
+
+        #expect(cadence.sortedHistory.first?.date == threeDaysAgo)
+        #expect(
+            try #require(cadence.activeBeat).due
+                == DayMath.addDays(7, to: threeDaysAgo, calendar: cal))
+    }
+
+    @Test("backdated completion in the future clamps to today")
+    func backdatedFutureClamps() throws {
+        let store = try makeStore()
+        let beat = store.createStandaloneBeat(
+            name: "One-off", colorHex: "#0A84FF", glyph: "🚩", due: today, grace: 1)
+        store.complete(beat, on: DayMath.addDays(5, to: today, calendar: cal))
+        #expect(try store.context.fetch(FetchDescriptor<Beat>()).isEmpty)
+    }
+
     @Test("skip generates the next beat and records a skipped entry")
     func skip() throws {
         let store = try makeStore()

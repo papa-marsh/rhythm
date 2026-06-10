@@ -21,6 +21,8 @@ struct BeatDetailSheet: View {
 
     @State private var draft = Draft()
     @State private var loaded = false
+    @State private var showCompletedOn = false
+    @State private var completedOnDate = Date.now
 
     struct Draft {
         var name = ""
@@ -53,7 +55,7 @@ struct BeatDetailSheet: View {
                         } label: {
                             HStack {
                                 Label {
-                                    Text("Part of cadence")
+                                    Text("Cadence")
                                         .foregroundStyle(.primary)
                                 } icon: {
                                     Image(systemName: "arrow.triangle.2.circlepath")
@@ -213,20 +215,53 @@ struct BeatDetailSheet: View {
                 toasts.show(.completed(nextScheduled: linked))
                 dismiss()
             } label: {
-                Label("Complete beat", systemImage: "checkmark")
+                Label("Complete", systemImage: "checkmark")
                     .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
             }
-            .listRowBackground(Theme.accent)
-            .foregroundStyle(.white)
+
+            Button {
+                withAnimation(.snappy) { showCompletedOn.toggle() }
+            } label: {
+                Label("Completed on…", systemImage: "calendar.badge.checkmark")
+            }
+            if showCompletedOn {
+                DatePicker(
+                    "Completion date", selection: $completedOnDate, in: completedOnRange,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                Button {
+                    save(applyEdits: true)
+                    let linked = beat.cadence != nil
+                    store.complete(beat, on: completedOnDate)
+                    toasts.show(.completed(nextScheduled: linked))
+                    dismiss()
+                } label: {
+                    Text("Mark completed \(completedOnLabel)")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            Button {
+                save()
+                let date = DayMath.addDays(
+                    Grace.snoozeDays(forGrace: draft.grace), to: ticker.today)
+                store.snooze(beat, until: date)
+                toasts.show(
+                    "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
+                    systemImage: "zzz", color: Theme.orange)
+                dismiss()
+            } label: {
+                Label("Snooze", systemImage: "zzz")
+            }
 
             Button {
                 save()
                 dismiss()
                 onSnooze(beat)
             } label: {
-                Label("Snooze", systemImage: "zzz")
-                    .frame(maxWidth: .infinity)
+                Label("Snooze until…", systemImage: "calendar.badge.clock")
             }
 
             Button {
@@ -235,7 +270,6 @@ struct BeatDetailSheet: View {
                 dismiss()
             } label: {
                 Label("Skip", systemImage: "forward.end")
-                    .frame(maxWidth: .infinity)
             }
 
             if beat.cadence == nil {
@@ -245,10 +279,24 @@ struct BeatDetailSheet: View {
                     dismiss()
                 } label: {
                     Label("Delete beat", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
                 }
             }
         }
+    }
+
+    /// Backdated completion is bounded by the most recent history entry
+    /// (for linked beats) and today.
+    private var completedOnRange: ClosedRange<Date> {
+        let lower =
+            beat.cadence?.sortedHistory.first?.date ?? Date.distantPast
+        return lower...ticker.today
+    }
+
+    private var completedOnLabel: String {
+        let off = DayMath.days(from: ticker.today, to: completedOnDate)
+        if off == 0 { return "today" }
+        if off == -1 { return "yesterday" }
+        return completedOnDate.formatted(.dateTime.month(.abbreviated).day())
     }
 
     // MARK: Draft plumbing

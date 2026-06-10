@@ -151,60 +151,55 @@ struct ScheduleTypeCards: View {
 
 // MARK: - Frequency picker
 
-/// Presets + stepper + unit segmented control.
+/// Directly-editable count + stepper, with the unit selector beneath.
 struct FrequencyPickerView: View {
     @Binding var n: Int
     @Binding var unit: FrequencyUnit
 
+    @FocusState private var countFocused: Bool
+
     var body: some View {
         VStack(spacing: 14) {
-            HStack(spacing: 8) {
-                preset("Daily", days: 1)
-                preset("Weekly", days: 7)
-                preset("Monthly", days: 30)
-                preset("Yearly", days: 365)
-            }
             HStack(spacing: 12) {
                 Text("Every")
                     .foregroundStyle(.secondary)
-                Text("\(n)")
+                TextField("Count", value: countBinding, format: .number)
+                    .keyboardType(.numberPad)
+                    .focused($countFocused)
+                    .multilineTextAlignment(.center)
                     .font(.system(size: 26, weight: .bold))
-                    .frame(minWidth: 34)
-                    .contentTransition(.numericText())
-                Stepper("Count", value: $n, in: 1...365)
+                    .frame(width: 64)
+                    .padding(.vertical, 4)
+                    .background(
+                        Color(.tertiarySystemFill),
+                        in: .rect(cornerRadius: 9, style: .continuous))
+                Stepper("Count", value: $n, in: 1...999)
                     .labelsHidden()
-                Picker("Unit", selection: $unit) {
-                    Text("days").tag(FrequencyUnit.days)
-                    Text("wks").tag(FrequencyUnit.weeks)
-                    Text("mos").tag(FrequencyUnit.months)
-                    Text("yrs").tag(FrequencyUnit.years)
-                }
-                .pickerStyle(.segmented)
             }
+            Picker("Unit", selection: $unit) {
+                Text("days").tag(FrequencyUnit.days)
+                Text("weeks").tag(FrequencyUnit.weeks)
+                Text("months").tag(FrequencyUnit.months)
+                Text("years").tag(FrequencyUnit.years)
+            }
+            .pickerStyle(.segmented)
         }
         .padding(.vertical, 4)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { countFocused = false }
+            }
+        }
     }
 
-    private func preset(_ label: String, days: Int) -> some View {
-        let active = Frequency(n: n, unit: unit).approximateDays == days
-        return Button {
-            let f = Frequency(approximateDays: days)
-            withAnimation(.snappy) {
-                n = f.n
-                unit = f.unit
-            }
-        } label: {
-            Text(label)
-                .font(.system(size: 13.5, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    active ? Theme.accent : Color(.tertiarySystemFill),
-                    in: .rect(cornerRadius: 9, style: .continuous)
-                )
-                .foregroundStyle(active ? .white : .primary)
+    /// Clamp typed values to a sane range.
+    private var countBinding: Binding<Int> {
+        Binding {
+            n
+        } set: {
+            n = min(max($0, 1), 999)
         }
-        .buttonStyle(.plain)
     }
 }
 

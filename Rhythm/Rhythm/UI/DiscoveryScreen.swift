@@ -17,6 +17,7 @@ struct DiscoveryScreen: View {
     @Query(sort: \Discovery.createdAt) private var discoveries: [Discovery]
     @State private var createPresented = false
     @State private var convertTarget: Discovery?
+    @State private var editTarget: Discovery?
 
     var body: some View {
         NavigationStack {
@@ -28,6 +29,7 @@ struct DiscoveryScreen: View {
                         discovery: discovery,
                         onLog: { log(discovery) },
                         onConvert: { convertTarget = discovery },
+                        onEdit: { editTarget = discovery },
                         onDelete: { delete(discovery) }
                     )
                 }
@@ -54,6 +56,9 @@ struct DiscoveryScreen: View {
             }
             .sheet(item: $convertTarget) { discovery in
                 ConvertDiscoverySheet(discovery: discovery)
+            }
+            .sheet(item: $editTarget) { discovery in
+                EditDiscoverySheet(discovery: discovery)
             }
         }
     }
@@ -92,25 +97,33 @@ private struct DiscoveryCard: View {
     let discovery: Discovery
     let onLog: () -> Void
     let onConvert: () -> Void
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     private var ready: Bool { discovery.isReadyToConvert }
 
     var body: some View {
         Section {
-            // Header: identity + progress dots
-            HStack(spacing: 12) {
-                GlyphTile(glyph: discovery.glyph, colorHex: discovery.colorHex, size: 38)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(discovery.name)
-                        .font(.system(size: 17, weight: .semibold))
-                    Text("\(discovery.logCount) of 2 logged")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+            // Header: identity + progress dots; tap to edit.
+            Button(action: onEdit) {
+                HStack(spacing: 12) {
+                    GlyphTile(glyph: discovery.glyph, colorHex: discovery.colorHex, size: 38)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(discovery.name)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text("\(discovery.logCount) of 2 logged")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    progressDots
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.tertiary)
                 }
-                Spacer()
-                progressDots
             }
+            .buttonStyle(.plain)
 
             // Logged timeline
             if discovery.logCount == 0 {
@@ -168,9 +181,10 @@ private struct DiscoveryCard: View {
     }
 
     private func suggestionText(_ suggested: Int) -> Text {
-        Text("Suggested frequency: ")
+        let nice = Frequency.suggested(forAverageDays: suggested)
+        return Text("Suggested frequency: ")
             .foregroundStyle(.secondary)
-            + Text("about every \(suggested) days")
+            + Text(nice.longLabel)
             .fontWeight(.semibold)
             + Text(". Convert to lock it in.")
             .foregroundStyle(.secondary)
