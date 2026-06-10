@@ -14,7 +14,10 @@ struct RhythmApp: App {
         let schema = Schema([
             Item.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // CloudKit mirroring stays off until the real schema lands (Stage 2);
+        // .automatic would try to mirror the template Item model and crash.
+        let modelConfiguration = ModelConfiguration(
+            schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
