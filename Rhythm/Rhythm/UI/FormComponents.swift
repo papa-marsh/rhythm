@@ -102,6 +102,112 @@ struct StepperRow: View {
     }
 }
 
+// MARK: - Schedule type cards
+
+/// The two selectable Relative/Fixed cards with descriptions.
+struct ScheduleTypeCards: View {
+    @Binding var selection: ScheduleType
+
+    var body: some View {
+        card(
+            .relative, icon: "checkmark",
+            description: "Counts from when you finish. Best for mowing, haircuts — things that drift.")
+        card(
+            .fixed, icon: "calendar",
+            description: "Hard schedule regardless of completion. Best for bills, trash day.")
+    }
+
+    private func card(_ type: ScheduleType, icon: String, description: String) -> some View {
+        Button {
+            selection = type
+        } label: {
+            HStack(alignment: .top, spacing: 13) {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(selection == type ? Theme.accent : Color(.tertiarySystemFill))
+                    .frame(width: 38, height: 38)
+                    .overlay {
+                        Image(systemName: icon)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(selection == type ? .white : .secondary)
+                    }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(type.displayName)
+                        .font(.system(size: 16.5, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text(description)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: selection == type ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(selection == type ? Theme.accent : Color(.systemGray3))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Frequency picker
+
+/// Presets + stepper + unit segmented control.
+struct FrequencyPickerView: View {
+    @Binding var n: Int
+    @Binding var unit: FrequencyUnit
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                preset("Daily", days: 1)
+                preset("Weekly", days: 7)
+                preset("Monthly", days: 30)
+                preset("Yearly", days: 365)
+            }
+            HStack(spacing: 12) {
+                Text("Every")
+                    .foregroundStyle(.secondary)
+                Text("\(n)")
+                    .font(.system(size: 26, weight: .bold))
+                    .frame(minWidth: 34)
+                    .contentTransition(.numericText())
+                Stepper("Count", value: $n, in: 1...365)
+                    .labelsHidden()
+                Picker("Unit", selection: $unit) {
+                    Text("days").tag(FrequencyUnit.days)
+                    Text("wks").tag(FrequencyUnit.weeks)
+                    Text("mos").tag(FrequencyUnit.months)
+                    Text("yrs").tag(FrequencyUnit.years)
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func preset(_ label: String, days: Int) -> some View {
+        let active = Frequency(n: n, unit: unit).approximateDays == days
+        return Button {
+            let f = Frequency(approximateDays: days)
+            withAnimation(.snappy) {
+                n = f.n
+                unit = f.unit
+            }
+        } label: {
+            Text(label)
+                .font(.system(size: 13.5, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    active ? Theme.accent : Color(.tertiarySystemFill),
+                    in: .rect(cornerRadius: 9, style: .continuous)
+                )
+                .foregroundStyle(active ? .white : .primary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Notification preference rows
 
 /// The three grace-tied toggles + delivery time, bound to a NotifyPreferences.

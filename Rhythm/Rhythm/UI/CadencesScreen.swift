@@ -86,6 +86,9 @@ struct CadencesScreen: View {
             .sheet(isPresented: $quickBeatPresented) {
                 QuickBeatSheet()
             }
+            .sheet(isPresented: $createDiscoveryPresented) {
+                CreateDiscoverySheet()
+            }
         }
     }
 

@@ -47,18 +47,11 @@ struct CreateCadenceSheet: View {
                 }
 
                 Section("Scheduling") {
-                    scheduleCard(
-                        .relative, icon: "checkmark",
-                        description:
-                            "Counts from when you finish. Best for mowing, haircuts — things that drift.")
-                    scheduleCard(
-                        .fixed, icon: "calendar",
-                        description:
-                            "Hard schedule regardless of completion. Best for bills, trash day.")
+                    ScheduleTypeCards(selection: $scheduleType)
                 }
 
                 Section {
-                    frequencyPicker
+                    FrequencyPickerView(n: $everyN, unit: $everyUnit)
                 } header: {
                     Text("Frequency")
                 } footer: {
@@ -102,97 +95,6 @@ struct CreateCadenceSheet: View {
             .onChange(of: everyN) { syncSuggestedGrace() }
             .onChange(of: everyUnit) { syncSuggestedGrace() }
         }
-    }
-
-    // MARK: Scheduling cards
-
-    private func scheduleCard(
-        _ type: ScheduleType, icon: String, description: String
-    ) -> some View {
-        Button {
-            scheduleType = type
-        } label: {
-            HStack(alignment: .top, spacing: 13) {
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(scheduleType == type ? Theme.accent : Color(.tertiarySystemFill))
-                    .frame(width: 38, height: 38)
-                    .overlay {
-                        Image(systemName: icon)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(scheduleType == type ? .white : .secondary)
-                    }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(type.displayName)
-                        .font(.system(size: 16.5, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text(description)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                Image(
-                    systemName: scheduleType == type
-                        ? "checkmark.circle.fill" : "circle"
-                )
-                .font(.system(size: 22))
-                .foregroundStyle(scheduleType == type ? Theme.accent : Color(.systemGray3))
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: Frequency
-
-    private var frequencyPicker: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 8) {
-                preset("Daily", days: 1)
-                preset("Weekly", days: 7)
-                preset("Monthly", days: 30)
-                preset("Yearly", days: 365)
-            }
-            HStack(spacing: 12) {
-                Text("Every")
-                    .foregroundStyle(.secondary)
-                Text("\(everyN)")
-                    .font(.system(size: 26, weight: .bold))
-                    .frame(minWidth: 34)
-                    .contentTransition(.numericText())
-                Stepper("Count", value: $everyN, in: 1...365)
-                    .labelsHidden()
-                Picker("Unit", selection: $everyUnit) {
-                    Text("days").tag(FrequencyUnit.days)
-                    Text("wks").tag(FrequencyUnit.weeks)
-                    Text("mos").tag(FrequencyUnit.months)
-                    Text("yrs").tag(FrequencyUnit.years)
-                }
-                .pickerStyle(.segmented)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func preset(_ label: String, days: Int) -> some View {
-        let active = frequency.approximateDays == days
-        return Button {
-            let f = Frequency(approximateDays: days)
-            withAnimation(.snappy) {
-                everyN = f.n
-                everyUnit = f.unit
-            }
-        } label: {
-            Text(label)
-                .font(.system(size: 13.5, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    active ? Theme.accent : Color(.tertiarySystemFill),
-                    in: .rect(cornerRadius: 9, style: .continuous)
-                )
-                .foregroundStyle(active ? .white : .primary)
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Grace plumbing

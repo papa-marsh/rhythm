@@ -23,6 +23,7 @@ struct TodayScreen: View {
     @State private var snoozeBeat: Beat?
     @State private var quickBeatPresented = false
     @State private var createCadencePresented = false
+    @State private var createDiscoveryPresented = false
 
     var body: some View {
         NavigationStack {
@@ -62,10 +63,9 @@ struct TodayScreen: View {
                 }
             }
             .confirmationDialog("Add to Rhythm", isPresented: $addMenuPresented, titleVisibility: .visible) {
-                // Discovery wired in Stage 7.
                 Button("Cadence") { createCadencePresented = true }
                 Button("Beat") { quickBeatPresented = true }
-                Button("Discovery") {}
+                Button("Discovery") { createDiscoveryPresented = true }
             }
             .sheet(item: $detailBeat) { beat in
                 BeatDetailSheet(beat: beat) { snoozeBeat = $0 }
@@ -78,6 +78,9 @@ struct TodayScreen: View {
             }
             .sheet(isPresented: $createCadencePresented) {
                 CreateCadenceSheet()
+            }
+            .sheet(isPresented: $createDiscoveryPresented) {
+                CreateDiscoverySheet()
             }
         }
     }

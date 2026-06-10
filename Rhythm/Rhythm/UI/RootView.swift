@@ -45,13 +45,4 @@ struct RootView: View {
     }
 }
 
-// MARK: - Placeholder (filled in Stage 7)
 
-struct DiscoveryScreen: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Discovery", systemImage: "safari", description: Text("Coming in Stage 7"))
-        }
-    }
-}
