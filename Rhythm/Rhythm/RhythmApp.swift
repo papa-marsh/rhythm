@@ -11,6 +11,8 @@ struct RhythmApp: App {
     let sharedModelContainer: ModelContainer
     @State private var store: RhythmStore
     @State private var settings = AppSettings()
+    @State private var ticker = DayTicker()
+    @State private var toasts = ToastCenter()
 
     init() {
         let schema = Schema([
@@ -40,6 +42,8 @@ struct RhythmApp: App {
             RootView()
                 .environment(store)
                 .environment(settings)
+                .environment(ticker)
+                .environment(toasts)
                 #if DEBUG
                     .task { seedIfEmpty() }
                 #endif

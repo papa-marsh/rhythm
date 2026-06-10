@@ -2,13 +2,16 @@
 //  RootView.swift
 //  Rhythm
 //
-//  The tabbed app shell: Today, Cadences, Discovery, Settings.
+//  The tabbed app shell: Today, Cadences, Discovery, Settings. Hosts the
+//  toast overlay and keeps the day ticker fresh across midnight/foreground.
 //
 
 import SwiftUI
 
 struct RootView: View {
     @Environment(AppSettings.self) private var settings
+    @Environment(DayTicker.self) private var ticker
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         TabView {
@@ -27,19 +30,20 @@ struct RootView: View {
         }
         .tint(Theme.accent)
         .preferredColorScheme(settings.appearance.colorScheme)
-    }
-}
-
-// MARK: - Placeholders (filled in Stages 4–7)
-
-struct TodayScreen: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Today", systemImage: "calendar", description: Text("Coming in Stage 4"))
+        .overlay { ToastOverlay() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { ticker.refresh() }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.significantTimeChangeNotification)
+        ) { _ in
+            ticker.refresh()
         }
     }
 }
+
+// MARK: - Placeholders (filled in Stages 6–7)
 
 struct CadencesScreen: View {
     var body: some View {
