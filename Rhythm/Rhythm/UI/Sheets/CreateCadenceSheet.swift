@@ -79,6 +79,7 @@ struct CreateCadenceSheet: View {
             }
             .navigationTitle(editing == nil ? "New cadence" : "Edit cadence")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

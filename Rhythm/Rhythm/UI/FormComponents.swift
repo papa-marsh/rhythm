@@ -67,13 +67,21 @@ struct GlyphColorPicker: View {
         }
         .frame(maxWidth: .infinity)
         .onAppear { text = glyph }
-        .onChange(of: text) { _, newValue in
-            // Keep only the most recent grapheme (one emoji).
-            guard let last = newValue.last.map(String.init), !newValue.isEmpty else {
+        .onChange(of: focused) { _, isFocused in
+            // Clear on focus so typing replaces rather than appends; if the
+            // field is dismissed still empty, fall back to the prior glyph
+            // (which was never overwritten).
+            if isFocused {
+                text = ""
+            } else if text.isEmpty {
                 text = glyph
-                return
             }
-            if last != text { text = last }
+        }
+        .onChange(of: text) { _, newValue in
+            // Keep only the most recent grapheme (one emoji). Empty is
+            // allowed while editing — focus loss restores the glyph.
+            guard let last = newValue.last.map(String.init) else { return }
+            if last != newValue { text = last }
             glyph = last
         }
     }
@@ -156,8 +164,6 @@ struct FrequencyPickerView: View {
     @Binding var n: Int
     @Binding var unit: FrequencyUnit
 
-    @FocusState private var countFocused: Bool
-
     var body: some View {
         VStack(spacing: 14) {
             HStack(spacing: 12) {
@@ -165,7 +171,6 @@ struct FrequencyPickerView: View {
                     .foregroundStyle(.secondary)
                 TextField("Count", value: countBinding, format: .number)
                     .keyboardType(.numberPad)
-                    .focused($countFocused)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 26, weight: .bold))
                     .frame(width: 64)
@@ -185,12 +190,6 @@ struct FrequencyPickerView: View {
             .pickerStyle(.segmented)
         }
         .padding(.vertical, 4)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { countFocused = false }
-            }
-        }
     }
 
     /// Clamp typed values to a sane range.
@@ -200,6 +199,34 @@ struct FrequencyPickerView: View {
         } set: {
             n = min(max($0, 1), 999)
         }
+    }
+}
+
+// MARK: - Keyboard dismissal
+
+/// Resign whichever field is first responder. The editor forms don't share
+/// a FocusState across their fields, so dismissal goes through UIKit.
+@MainActor
+private func endTextEditing() {
+    UIApplication.shared.sendAction(
+        #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+
+extension View {
+    /// Editor-sheet keyboard chrome: a Done button above the keyboard plus
+    /// tap-away and drag dismissal. Apply to the sheet's Form — keyboard
+    /// toolbar items declared on views *inside* the scroll content vanish
+    /// when their row scrolls offscreen.
+    func keyboardDismissal() -> some View {
+        self
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { endTextEditing() }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { endTextEditing() }
+                }
+            }
     }
 }
 

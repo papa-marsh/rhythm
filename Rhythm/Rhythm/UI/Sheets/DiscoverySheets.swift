@@ -39,6 +39,7 @@ struct CreateDiscoverySheet: View {
             }
             .navigationTitle("Start a discovery")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -114,6 +115,7 @@ struct ConvertDiscoverySheet: View {
             }
             .navigationTitle("Convert to cadence")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

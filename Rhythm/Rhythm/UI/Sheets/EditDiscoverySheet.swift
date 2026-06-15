@@ -65,6 +65,7 @@ struct EditDiscoverySheet: View {
             }
             .navigationTitle("Edit discovery")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

@@ -44,6 +44,7 @@ struct QuickBeatSheet: View {
             }
             .navigationTitle("Quick beat")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

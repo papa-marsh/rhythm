@@ -122,6 +122,7 @@ struct BeatDetailSheet: View {
             }
             .navigationTitle("Beat")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissal()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
