@@ -53,6 +53,9 @@ final class AppSettings {
     var density: DisplayDensity {
         didSet { Self.defaults.set(density.rawValue, forKey: "density") }
     }
+    var multilineTitles: Bool {
+        didSet { Self.defaults.set(multilineTitles, forKey: "multilineTitles") }
+    }
     var defaultScheduleType: ScheduleType {
         didSet { Self.defaults.set(defaultScheduleType.rawValue, forKey: "defaultScheduleType") }
     }
@@ -87,6 +90,7 @@ final class AppSettings {
         appearance = Appearance(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
         showEmoji = d.object(forKey: "showEmoji") as? Bool ?? true
         density = DisplayDensity(rawValue: d.string(forKey: "density") ?? "") ?? .compact
+        multilineTitles = d.object(forKey: "multilineTitles") as? Bool ?? false
         defaultScheduleType =
             ScheduleType(rawValue: d.string(forKey: "defaultScheduleType") ?? "") ?? .relative
         defaultNotifyAlmost = d.object(forKey: "defaultNotifyAlmost") as? Bool ?? false

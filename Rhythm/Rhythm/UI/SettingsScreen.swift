@@ -40,6 +40,12 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    Toggle("Multi-line titles", isOn: $settings.multilineTitles)
+                } footer: {
+                    Text("Let long beat and cadence names wrap instead of truncating.")
+                }
+
+                Section {
                     Toggle("Show emojis", isOn: $settings.showEmoji)
                 } footer: {
                     Text("Display emojis next to beats and cadences.")

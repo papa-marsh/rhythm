@@ -89,6 +89,11 @@ struct CadencesScreen: View {
         }
     }
 
+    private var titleLineLimit: Int? {
+        if settings.multilineTitles { return nil }
+        return settings.density == .comfortable ? 2 : 1
+    }
+
     private func row(for cadence: Cadence) -> some View {
         NavigationLink(value: cadence) {
             HStack(alignment: .center, spacing: 12) {
@@ -96,7 +101,7 @@ struct CadencesScreen: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(cadence.name)
                         .font(.system(size: 17, weight: .semibold))
-                        .lineLimit(settings.density == .comfortable ? 2 : 1)
+                        .lineLimit(titleLineLimit)
                     if settings.density == .comfortable {
                         frequencyChip(for: cadence)
                     }

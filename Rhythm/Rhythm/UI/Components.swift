@@ -80,6 +80,11 @@ struct BeatRowView: View {
 
     let beat: Beat
 
+    private var titleLineLimit: Int? {
+        if settings.multilineTitles { return nil }
+        return settings.density == .comfortable ? 2 : 1
+    }
+
     var body: some View {
         let urgency = beat.urgency(today: ticker.today)
         HStack(alignment: .center, spacing: 12) {
@@ -87,7 +92,7 @@ struct BeatRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(beat.name)
                     .font(.system(size: 16.5, weight: .semibold))
-                    .lineLimit(settings.density == .comfortable ? 2 : 1)
+                    .lineLimit(titleLineLimit)
                 if settings.density == .comfortable {
                     DueChip(urgency: urgency)
                 }
