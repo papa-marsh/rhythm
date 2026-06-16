@@ -71,6 +71,12 @@ final class AppSettings {
     var defaultNotifyMinutes: Int {
         didSet { Self.defaults.set(defaultNotifyMinutes, forKey: "defaultNotifyMinutes") }
     }
+    var dailyDigestEnabled: Bool {
+        didSet { Self.defaults.set(dailyDigestEnabled, forKey: "dailyDigestEnabled") }
+    }
+    var dailyDigestMinutes: Int {
+        didSet { Self.defaults.set(dailyDigestMinutes, forKey: "dailyDigestMinutes") }
+    }
     var sound: Bool {
         didSet { Self.defaults.set(sound, forKey: "sound") }
     }
@@ -97,6 +103,8 @@ final class AppSettings {
         defaultNotifyDue = d.object(forKey: "defaultNotifyDue") as? Bool ?? true
         defaultNotifyOverdue = d.object(forKey: "defaultNotifyOverdue") as? Bool ?? true
         defaultNotifyMinutes = d.object(forKey: "defaultNotifyMinutes") as? Int ?? 9 * 60
+        dailyDigestEnabled = d.object(forKey: "dailyDigestEnabled") as? Bool ?? true
+        dailyDigestMinutes = d.object(forKey: "dailyDigestMinutes") as? Int ?? 9 * 60
         sound = d.object(forKey: "sound") as? Bool ?? true
         vibrate = d.object(forKey: "vibrate") as? Bool ?? true
     }

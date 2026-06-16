@@ -42,7 +42,7 @@ struct NotifyPreferences: Equatable, Codable, Sendable {
 
     /// Summary copy for detail rows: "Due, Overdue" or "Off".
     var summary: String {
-        let parts = [almost ? "Almost" : nil, due ? "Due" : nil, overdue ? "Overdue" : nil]
+        let parts = [almost ? "Upcoming" : nil, due ? "Due" : nil, overdue ? "Overdue" : nil]
             .compactMap(\.self)
         return parts.isEmpty ? "Off" : parts.joined(separator: ", ")
     }

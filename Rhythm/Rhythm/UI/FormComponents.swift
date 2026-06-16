@@ -236,7 +236,7 @@ struct NotifyRows: View {
     @Binding var notify: NotifyPreferences
 
     var body: some View {
-        Toggle("Almost due", isOn: $notify.almost)
+        Toggle("Upcoming", isOn: $notify.almost)
         Toggle("Due", isOn: $notify.due)
         Toggle("Overdue", isOn: $notify.overdue)
         DatePicker("Time", selection: timeBinding, displayedComponents: .hourAndMinute)

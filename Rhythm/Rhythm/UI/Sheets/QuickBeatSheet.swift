@@ -19,7 +19,7 @@ struct QuickBeatSheet: View {
     @State private var colorHex = "#0A84FF"
     @State private var glyph = "🚩"
     @State private var due = Date.now
-    @State private var grace = Grace.days(forFrequencyDays: 7)
+    @State private var grace = Grace.days(forFrequencyDays: 1)
     @State private var graceTouched = false
 
     var body: some View {
@@ -56,7 +56,7 @@ struct QuickBeatSheet: View {
                 }
             }
             .onAppear {
-                due = DayMath.addDays(7, to: ticker.today)
+                due = DayMath.addDays(1, to: ticker.today)
             }
             .onChange(of: due) { _, newDue in
                 guard !graceTouched else { return }

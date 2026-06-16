@@ -48,6 +48,8 @@ final class NotificationScheduler {
         let inputs = snapshotBeats()
         let showEmoji = settings.showEmoji
         let sound = settings.sound
+        let digestEnabled = settings.dailyDigestEnabled
+        let digestMinutes = settings.dailyDigestMinutes
         let calendar = calendar
 
         replanTask = Task {
@@ -56,6 +58,7 @@ final class NotificationScheduler {
 
             let plan = NotificationPlanner.plan(
                 beats: inputs, now: .now, showEmoji: showEmoji, sound: sound,
+                digestEnabled: digestEnabled, digestMinutes: digestMinutes,
                 calendar: calendar)
 
             let center = UNUserNotificationCenter.current()

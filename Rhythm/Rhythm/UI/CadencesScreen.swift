@@ -65,10 +65,10 @@ struct CadencesScreen: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
+                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
                         Button("Cadence", systemImage: "arrow.triangle.2.circlepath") {
                             createPresented = true
                         }
-                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
                         Button("Discovery", systemImage: "target") {
                             createDiscoveryPresented = true
                         }

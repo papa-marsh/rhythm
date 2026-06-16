@@ -12,6 +12,8 @@
 //    future day on which the count of due-or-overdue beats changes,
 //    because iOS can't run code at midnight — each carries its absolute
 //    pre-computed count.
+//  - Daily digest (optional): one alert per day at the digest time
+//    summarizing that day's due and overdue beats, skipped on quiet days.
 //
 //  Both kinds compete for iOS's 64-pending-notification budget; they're
 //  interleaved chronologically so the near term is always fully covered
@@ -23,7 +25,7 @@ import Foundation
 
 struct PlannedNotification: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case almost, due, overdue, badgeUpdate
+        case almost, due, overdue, badgeUpdate, digest
     }
 
     let identifier: String
@@ -60,12 +62,17 @@ enum NotificationPlanner {
         now: Date,
         showEmoji: Bool = true,
         sound: Bool = true,
+        digestEnabled: Bool = false,
+        digestMinutes: Int = 9 * 60,
         limit: Int = 64,
         horizonDays: Int = 400,
         calendar: Calendar = .current
     ) -> Plan {
         let today = DayMath.startOfDay(now, calendar: calendar)
-        let dueDays = beats.map { DayMath.startOfDay($0.effectiveDue, calendar: calendar) }
+        let beatDays = beats.map {
+            (name: $0.name, dueDay: DayMath.startOfDay($0.effectiveDue, calendar: calendar))
+        }
+        let dueDays = beatDays.map(\.dueDay)
 
         func badgeCount(onOrBefore day: Date) -> Int {
             dueDays.count { $0 <= day }
@@ -128,6 +135,38 @@ enum NotificationPlanner {
                 ))
         }
 
+        // ── Daily digest: one summary per day with anything due or overdue ──
+        if digestEnabled {
+            var day = today
+            while day <= horizon {
+                let dueToday = beatDays.filter { $0.dueDay == day }.map(\.name)
+                let overdue = beatDays.filter { $0.dueDay < day }.map {
+                    DigestCopy.OverdueBeat(
+                        name: $0.name,
+                        daysOverdue: DayMath.days(from: $0.dueDay, to: day, calendar: calendar))
+                }
+
+                if let body = DigestCopy.body(dueToday: dueToday, overdue: overdue),
+                    let fireDate = calendar.date(
+                        bySettingHour: digestMinutes / 60, minute: digestMinutes % 60,
+                        second: 0, of: day),
+                    fireDate > now
+                {
+                    planned.append(
+                        PlannedNotification(
+                            identifier: "digest-\(dayKey(day, calendar: calendar))",
+                            fireDate: fireDate,
+                            kind: .digest,
+                            title: DigestCopy.title,
+                            body: body,
+                            badge: badgeCount(onOrBefore: day),
+                            sound: sound
+                        ))
+                }
+                day = DayMath.addDays(1, to: day, calendar: calendar)
+            }
+        }
+
         // Chronological priority into the 64-slot budget.
         let limited = planned
             .sorted { $0.fireDate == $1.fireDate ? $0.identifier < $1.identifier : $0.fireDate < $1.fireDate }
@@ -152,7 +191,7 @@ enum NotificationPlanner {
         case .overdue:
             max(1, beat.grace) == 1
                 ? "1 day overdue." : "\(max(1, beat.grace)) days overdue."
-        case .badgeUpdate:
+        case .badgeUpdate, .digest:
             nil
         }
     }
@@ -163,6 +202,7 @@ enum NotificationPlanner {
         case .due: "due"
         case .overdue: "overdue"
         case .badgeUpdate: "badge"
+        case .digest: "digest"
         }
     }
 

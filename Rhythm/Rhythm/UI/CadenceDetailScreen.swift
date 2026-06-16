@@ -74,7 +74,7 @@ struct CadenceDetailScreen: View {
     private func quickSnooze(_ beat: Beat) {
         let date = store.quickSnooze(beat)
         toasts.show(
-            "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
+            "Snoozed until \(DayMath.absolutePhrase(for: date, from: ticker.today))",
             systemImage: "zzz", color: Theme.orange)
     }
 

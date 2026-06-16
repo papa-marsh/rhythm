@@ -111,4 +111,19 @@ enum DayMath {
         case let n: return "\(-n) days ago"
         }
     }
+
+    /// Absolute phrasing for a date: the adjacent days read naturally
+    /// ("today", "tomorrow", "yesterday"), anything else is the calendar date
+    /// ("Jun 17"). Used where a relative count would be awkward, e.g.
+    /// "Snoozed until Jun 17".
+    static func absolutePhrase(for date: Date, from today: Date, calendar: Calendar = .current)
+        -> String
+    {
+        switch days(from: today, to: date, calendar: calendar) {
+        case 0: return "today"
+        case 1: return "tomorrow"
+        case -1: return "yesterday"
+        default: return date.formatted(.dateTime.month(.abbreviated).day())
+        }
+    }
 }

@@ -185,6 +185,21 @@ struct DayMathTests {
         #expect(DayMath.relativePhrase(for: date(2026, 6, 21), from: today, calendar: cal) == "in 12 days")
         #expect(DayMath.relativePhrase(for: date(2026, 6, 4), from: today, calendar: cal) == "5 days ago")
     }
+
+    @Test("absolute phrasing names adjacent days, dates everything else")
+    func absolutePhrase() {
+        let today = date(2026, 6, 9)
+        #expect(DayMath.absolutePhrase(for: date(2026, 6, 9), from: today, calendar: cal) == "today")
+        #expect(
+            DayMath.absolutePhrase(for: date(2026, 6, 10), from: today, calendar: cal) == "tomorrow")
+        #expect(
+            DayMath.absolutePhrase(for: date(2026, 6, 8), from: today, calendar: cal) == "yesterday")
+        // Beyond a day in either direction → the calendar date, abbreviated month.
+        let far = date(2026, 6, 17)
+        #expect(
+            DayMath.absolutePhrase(for: far, from: today, calendar: cal)
+                == far.formatted(.dateTime.month(.abbreviated).day()))
+    }
 }
 
 // MARK: - Urgency
@@ -261,5 +276,65 @@ struct UrgencyTests {
         #expect(UrgencyTier.almost < .due)
         #expect(UrgencyTier.due < .overdue)
         #expect(UrgencyTier.overdue < .late)
+    }
+}
+
+// MARK: - Daily digest copy
+
+struct DigestCopyTests {
+    private func overdue(_ name: String, _ days: Int) -> DigestCopy.OverdueBeat {
+        DigestCopy.OverdueBeat(name: name, daysOverdue: days)
+    }
+
+    @Test("nothing due or overdue yields no digest")
+    func empty() {
+        #expect(DigestCopy.body(dueToday: [], overdue: []) == nil)
+    }
+
+    @Test("due-only: single is named, multiple is counted")
+    func dueOnly() {
+        #expect(
+            DigestCopy.body(dueToday: ["Mow the Lawn"], overdue: [])
+                == "Mow the Lawn is due today.")
+        #expect(
+            DigestCopy.body(dueToday: ["Mow the Lawn", "Water Plants"], overdue: [])
+                == "2 beats due today.")
+    }
+
+    @Test("overdue-only: single names the beat and its day count")
+    func overdueOnly() {
+        #expect(
+            DigestCopy.body(dueToday: [], overdue: [overdue("Shave", 3)])
+                == "Shave is 3 days overdue.")
+        #expect(
+            DigestCopy.body(dueToday: [], overdue: [overdue("Shave", 1)])
+                == "Shave is 1 day overdue.")
+        #expect(
+            DigestCopy.body(dueToday: [], overdue: [overdue("Shave", 3), overdue("Floss", 1)])
+                == "2 beats overdue.")
+    }
+
+    @Test("combined phrasing across due/overdue cardinalities")
+    func combined() {
+        // 1 / 1
+        #expect(
+            DigestCopy.body(dueToday: ["Mow the Lawn"], overdue: [overdue("Shave", 3)])
+                == "Mow the Lawn is due today and Shave is 3 days overdue.")
+        // 2+ / 1
+        #expect(
+            DigestCopy.body(
+                dueToday: ["Mow the Lawn", "Water Plants"], overdue: [overdue("Shave", 3)])
+                == "2 beats due today and Shave is 3 days overdue.")
+        // 1 / 2+  → "beats are overdue"
+        #expect(
+            DigestCopy.body(
+                dueToday: ["Mow the Lawn"], overdue: [overdue("Shave", 3), overdue("Floss", 1)])
+                == "Mow the Lawn is due today and 2 beats are overdue.")
+        // 2+ / 2+ → "more are overdue"
+        #expect(
+            DigestCopy.body(
+                dueToday: ["Mow the Lawn", "Water Plants"],
+                overdue: [overdue("Shave", 3), overdue("Floss", 1)])
+                == "2 beats due today and 2 more are overdue.")
     }
 }

@@ -43,9 +43,12 @@ private func beat(
 }
 
 private func plan(
-    _ beats: [NotificationPlanner.BeatInput], limit: Int = 64
+    _ beats: [NotificationPlanner.BeatInput], limit: Int = 64,
+    digest: Bool = false, digestMinutes: Int = 9 * 60
 ) -> NotificationPlanner.Plan {
-    NotificationPlanner.plan(beats: beats, now: now, limit: limit, calendar: cal)
+    NotificationPlanner.plan(
+        beats: beats, now: now, digestEnabled: digest, digestMinutes: digestMinutes,
+        limit: limit, calendar: cal)
 }
 
 struct ReminderPlanningTests {
@@ -184,5 +187,66 @@ struct BudgetTests {
         let result = plan(beats)
         let ids = result.notifications.map(\.identifier)
         #expect(Set(ids).count == ids.count)
+    }
+}
+
+struct DigestPlanningTests {
+
+    /// The digest scheduled for today (Jun 9), at the default 9:00 AM.
+    private func todaysDigest(_ plan: NotificationPlanner.Plan) -> PlannedNotification? {
+        plan.notifications.first { $0.kind == .digest && $0.fireDate == date(2026, 6, 9, 9, 0) }
+    }
+
+    @Test("no digest unless enabled")
+    func disabledByDefault() {
+        let result = plan([beat(dueOffset: 0)])
+        #expect(!result.notifications.contains { $0.kind == .digest })
+    }
+
+    @Test("a due-today beat produces today's digest, named, with the badge")
+    func dueTodayDigest() {
+        let result = plan([beat(name: "Mow the Lawn", dueOffset: 0)], digest: true)
+        let digest = todaysDigest(result)
+        #expect(digest?.title == "Today's Rhythm")
+        #expect(digest?.body == "Mow the Lawn is due today.")
+        #expect(digest?.badge == 1)
+    }
+
+    @Test("an overdue beat reads with its day count")
+    func overdueDigest() {
+        let result = plan([beat(name: "Shave", dueOffset: -3)], digest: true)
+        #expect(todaysDigest(result)?.body == "Shave is 3 days overdue.")
+    }
+
+    @Test("multiple beats on one day collapse per the digest rules")
+    func combinedDigest() {
+        let result = plan(
+            [
+                beat(name: "Mow the Lawn", dueOffset: 0),
+                beat(name: "Water Plants", dueOffset: 0),
+                beat(name: "Shave", dueOffset: -3),
+            ], digest: true)
+        let digest = todaysDigest(result)
+        #expect(digest?.body == "2 beats due today and Shave is 3 days overdue.")
+        #expect(digest?.badge == 3)
+    }
+
+    @Test("quiet days get no digest; the first one lands on the due day")
+    func quietDaysSkipped() {
+        // Nothing is due or overdue until Jun 14.
+        let result = plan([beat(dueOffset: 5, grace: 0, almost: false, overdue: false)], digest: true)
+        let digests = result.notifications
+            .filter { $0.kind == .digest }
+            .sorted { $0.fireDate < $1.fireDate }
+        #expect(digests.allSatisfy { $0.fireDate >= date(2026, 6, 14, 9, 0) })
+        #expect(digests.first?.fireDate == date(2026, 6, 14, 9, 0))
+        #expect(digests.first?.body == "Beat is due today.")
+    }
+
+    @Test("digest fires at the configured time")
+    func digestTimeRespected() {
+        let result = plan([beat(dueOffset: 0)], digest: true, digestMinutes: 18 * 60)
+        #expect(result.notifications.first { $0.kind == .digest }?.fireDate
+            == date(2026, 6, 9, 18, 0))
     }
 }

@@ -55,10 +55,10 @@ struct TodayScreen: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
+                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
                         Button("Cadence", systemImage: "arrow.triangle.2.circlepath") {
                             createCadencePresented = true
                         }
-                        Button("Beat", systemImage: "flag") { quickBeatPresented = true }
                         Button("Discovery", systemImage: "target") {
                             createDiscoveryPresented = true
                         }
@@ -136,7 +136,7 @@ struct TodayScreen: View {
     private func snooze(_ beat: Beat) {
         let date = store.quickSnooze(beat)
         toasts.show(
-            "Snoozed until \(DayMath.relativePhrase(for: date, from: ticker.today))",
+            "Snoozed until \(DayMath.absolutePhrase(for: date, from: ticker.today))",
             systemImage: "zzz", color: Theme.orange)
     }
 

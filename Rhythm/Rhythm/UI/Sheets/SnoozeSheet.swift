@@ -118,8 +118,6 @@ struct SnoozeSheet: View {
     }
 
     private func formatted(_ date: Date) -> String {
-        let off = DayMath.days(from: ticker.today, to: date)
-        if off == 1 { return "Tomorrow" }
-        return date.formatted(.dateTime.month(.abbreviated).day())
+        DayMath.absolutePhrase(for: date, from: ticker.today)
     }
 }

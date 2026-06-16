@@ -50,6 +50,8 @@ struct RootView: View {
         // These settings are baked into scheduled notification content.
         .onChange(of: settings.sound) { scheduler.replan() }
         .onChange(of: settings.showEmoji) { scheduler.replan() }
+        .onChange(of: settings.dailyDigestEnabled) { scheduler.replan() }
+        .onChange(of: settings.dailyDigestMinutes) { scheduler.replan() }
     }
 }
 

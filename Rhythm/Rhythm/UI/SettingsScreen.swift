@@ -67,7 +67,7 @@ struct SettingsScreen: View {
                 }
 
                 Section {
-                    Toggle("Almost due", isOn: $settings.defaultNotifyAlmost)
+                    Toggle("Upcoming", isOn: $settings.defaultNotifyAlmost)
                     Toggle("Due", isOn: $settings.defaultNotifyDue)
                     Toggle("Overdue", isOn: $settings.defaultNotifyOverdue)
                     DatePicker(
@@ -77,6 +77,21 @@ struct SettingsScreen: View {
                     Text("Default notifications")
                 } footer: {
                     Text("Applied to new cadences. Each cadence and beat can override these.")
+                }
+
+                Section {
+                    Toggle("Daily digest", isOn: $settings.dailyDigestEnabled)
+                    if settings.dailyDigestEnabled {
+                        DatePicker(
+                            "Time", selection: digestTimeBinding,
+                            displayedComponents: .hourAndMinute)
+                    }
+                } header: {
+                    Text("Daily digest")
+                } footer: {
+                    Text(
+                        "One summary of everything due or overdue, sent once a day — only when something’s waiting."
+                    )
                 }
 
                 Section("Alerts") {
@@ -109,6 +124,20 @@ struct SettingsScreen: View {
         } set: { date in
             let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
             settings.defaultNotifyMinutes = (parts.hour ?? 9) * 60 + (parts.minute ?? 0)
+        }
+    }
+
+    /// Bridge the digest's minutes-since-midnight ↔ a Date for the picker.
+    private var digestTimeBinding: Binding<Date> {
+        Binding {
+            let cal = Calendar.current
+            return cal.date(
+                bySettingHour: settings.dailyDigestMinutes / 60,
+                minute: settings.dailyDigestMinutes % 60,
+                second: 0, of: .now) ?? .now
+        } set: { date in
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+            settings.dailyDigestMinutes = (parts.hour ?? 9) * 60 + (parts.minute ?? 0)
         }
     }
 
