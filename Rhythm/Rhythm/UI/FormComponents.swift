@@ -214,13 +214,12 @@ private func endTextEditing() {
 
 extension View {
     /// Editor-sheet keyboard chrome: a Done button above the keyboard plus
-    /// tap-away and drag dismissal. Apply to the sheet's Form — keyboard
-    /// toolbar items declared on views *inside* the scroll content vanish
-    /// when their row scrolls offscreen.
+    /// drag-to-dismiss. Apply to the sheet's Form — keyboard toolbar items
+    /// declared on views *inside* the scroll content vanish when their row
+    /// scrolls offscreen.
     func keyboardDismissal() -> some View {
         self
             .scrollDismissesKeyboard(.interactively)
-            .onTapGesture { endTextEditing() }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
