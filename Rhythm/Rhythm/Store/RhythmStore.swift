@@ -48,28 +48,30 @@ final class RhythmStore {
         advance(beat, action: .completed, asOf: day)
     }
 
-    /// Skip a beat: same generation rules as complete, recorded as skipped.
     func skip(_ beat: Beat) {
         advance(beat, action: .skipped, asOf: today)
     }
 
     private func advance(_ beat: Beat, action: HistoryAction, asOf day: Date) {
         if let cadence = beat.cadence {
-            let entry = HistoryEntry(date: day, action: action)
+            let due = DayMath.startOfDay(beat.due, calendar: calendar)
+            let historyDate =
+                action == .skipped && cadence.scheduleType == .fixed ? min(day, due) : day
+            let relativeBase = action == .skipped ? max(day, due) : day
+            let entry = HistoryEntry(date: historyDate, action: action)
             context.insert(entry)
             entry.cadence = cadence
 
             let nextDue: Date =
                 switch cadence.scheduleType {
                 case .relative:
-                    // From the completion day; anchor = the day you completed.
                     DayMath.add(
-                        cadence.frequency, to: day,
-                        anchorDay: calendar.component(.day, from: day), calendar: calendar)
+                        cadence.frequency, to: relativeBase,
+                        anchorDay: calendar.component(.day, from: relativeBase), calendar: calendar)
                 case .fixed:
                     // From the previous due, regardless of completion date.
                     DayMath.add(
-                        cadence.frequency, to: beat.due, anchorDay: cadence.anchorDay,
+                        cadence.frequency, to: due, anchorDay: cadence.anchorDay,
                         calendar: calendar)
                 }
 

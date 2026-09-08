@@ -283,12 +283,8 @@ struct BeatDetailSheet: View {
         }
     }
 
-    /// Backdated completion is bounded by the most recent history entry
-    /// (for linked beats) and today.
     private var completedOnRange: ClosedRange<Date> {
-        let lower =
-            beat.cadence?.sortedHistory.first?.date ?? Date.distantPast
-        return lower...ticker.today
+        beat.completionDateRange(today: ticker.today)
     }
 
     private var completedOnLabel: String {

@@ -85,4 +85,14 @@ final class Beat {
     func effectiveDue(today: Date, calendar: Calendar = .current) -> Date {
         Urgency.effectiveDue(due: due, snoozedUntil: snoozedUntil, today: today, calendar: calendar)
     }
+
+    func completionDateRange(today: Date, calendar: Calendar = .current) -> ClosedRange<Date> {
+        let upper = DayMath.startOfDay(today, calendar: calendar)
+        let lastCompletion = cadence?.history?
+            .filter { $0.action == .completed }
+            .map(\.date)
+            .max()
+        let lower = lastCompletion.map { DayMath.startOfDay($0, calendar: calendar) } ?? .distantPast
+        return min(lower, upper)...upper
+    }
 }

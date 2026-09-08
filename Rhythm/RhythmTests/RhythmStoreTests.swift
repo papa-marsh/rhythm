@@ -112,24 +112,143 @@ struct BeatLifecycleTests {
     @Test("backdated completion in the future clamps to today")
     func backdatedFutureClamps() throws {
         let store = try makeStore()
-        let beat = store.createStandaloneBeat(
-            name: "One-off", colorHex: "#0A84FF", glyph: "🚩", due: today, grace: 1)
-        store.complete(beat, on: DayMath.addDays(5, to: today, calendar: cal))
-        #expect(try store.context.fetch(FetchDescriptor<Beat>()).isEmpty)
+        let cadence = store.createCadence(
+            name: "Mow", colorHex: "#34C759", glyph: "🌿",
+            scheduleType: .relative, frequency: Frequency(n: 1, unit: .weeks),
+            grace: 1, firstDue: today, notify: .standard)
+
+        store.complete(
+            try #require(cadence.activeBeat), on: DayMath.addDays(5, to: today, calendar: cal))
+
+        #expect(cadence.sortedHistory.first?.date == today)
+        #expect(try #require(cadence.activeBeat).due == DayMath.addDays(7, to: today, calendar: cal))
     }
 
-    @Test("skip generates the next beat and records a skipped entry")
-    func skip() throws {
+    @Test(
+        "skips date history and advance according to schedule type and due day",
+        arguments: [
+            (ScheduleType.fixed, -14, -14, -7),
+            (.relative, -14, 0, 7),
+            (.fixed, 0, 0, 7),
+            (.relative, 0, 0, 7),
+            (.fixed, 3, 0, 10),
+            (.relative, 3, 0, 10),
+        ])
+    func skip(schedule: ScheduleType, dueOffset: Int, historyOffset: Int, nextOffset: Int) throws {
         let store = try makeStore()
         let cadence = store.createCadence(
             name: "Water ferns", colorHex: "#32ADE6", glyph: "🪴",
-            scheduleType: .relative, frequency: Frequency(n: 3, unit: .days),
-            grace: 1, firstDue: today, notify: .standard)
+            scheduleType: schedule, frequency: Frequency(n: 1, unit: .weeks),
+            grace: 1, firstDue: DayMath.addDays(dueOffset, to: today, calendar: cal),
+            notify: .standard)
 
         store.skip(try #require(cadence.activeBeat))
 
+        #expect(cadence.sortedHistory.count == 1)
         #expect(cadence.sortedHistory.first?.action == .skipped)
-        #expect(try #require(cadence.activeBeat).due == DayMath.addDays(3, to: today, calendar: cal))
+        #expect(
+            cadence.sortedHistory.first?.date == DayMath.addDays(historyOffset, to: today, calendar: cal))
+        #expect(
+            try #require(cadence.activeBeat).due == DayMath.addDays(nextOffset, to: today, calendar: cal))
+        #expect((cadence.beats ?? []).count == 1)
+    }
+
+    @Test("an overdue fixed skip allows backdating completion of the next occurrence")
+    func completeAfterOverdueFixedSkip() throws {
+        let store = try makeStore()
+        let cadence = store.createCadence(
+            name: "Trash", colorHex: "#8E8E93", glyph: "🗑️",
+            scheduleType: .fixed, frequency: Frequency(n: 1, unit: .weeks),
+            grace: 1, firstDue: DayMath.addDays(-14, to: today, calendar: cal),
+            notify: .standard)
+
+        store.skip(try #require(cadence.activeBeat))
+
+        let next = try #require(cadence.activeBeat)
+        let completionDay = DayMath.addDays(-5, to: today, calendar: cal)
+        let range = next.completionDateRange(today: today, calendar: cal)
+        #expect(range.lowerBound == .distantPast)
+        #expect(range.contains(completionDay))
+        #expect(range.upperBound == today)
+
+        store.complete(next, on: completionDay)
+
+        #expect(cadence.sortedHistory.count == 2)
+        #expect(cadence.sortedHistory.first?.action == .completed)
+        #expect(cadence.sortedHistory.first?.date == completionDay)
+        #expect(try #require(cadence.activeBeat).due == today)
+        #expect((cadence.beats ?? []).count == 1)
+    }
+
+    @Test(
+        "only actual completions bound backdating across skips",
+        arguments: [ScheduleType.fixed, .relative])
+    func completionRangeIgnoresSkips(schedule: ScheduleType) throws {
+        let store = try makeStore()
+        let priorCompletion = DayMath.addDays(-21, to: today, calendar: cal)
+        let cadence = store.createCadence(
+            name: "Water ferns", colorHex: "#32ADE6", glyph: "🪴",
+            scheduleType: schedule, frequency: Frequency(n: 1, unit: .weeks),
+            grace: 1, firstDue: priorCompletion, notify: .standard)
+        store.complete(try #require(cadence.activeBeat), on: priorCompletion)
+        store.skip(try #require(cadence.activeBeat))
+
+        let next = try #require(cadence.activeBeat)
+        let completionDay = DayMath.addDays(-16, to: today, calendar: cal)
+        let range = next.completionDateRange(today: today, calendar: cal)
+        #expect(range.lowerBound == priorCompletion)
+        #expect(range.contains(priorCompletion))
+        #expect(range.contains(completionDay))
+        #expect(!range.contains(DayMath.addDays(-1, to: priorCompletion, calendar: cal)))
+        #expect(!range.contains(DayMath.addDays(1, to: today, calendar: cal)))
+
+        store.complete(next, on: completionDay)
+
+        let following = try #require(cadence.activeBeat)
+        #expect(following.completionDateRange(today: today, calendar: cal).lowerBound == completionDay)
+        let expectedDue = schedule == .fixed ? today : DayMath.addDays(-9, to: today, calendar: cal)
+        #expect(following.due == expectedDue)
+        #expect(cadence.sortedHistory.count == 3)
+        #expect((cadence.beats ?? []).count == 1)
+    }
+
+    @Test("early relative monthly skips anchor the next interval to the due day")
+    func earlyRelativeMonthlySkip() throws {
+        let store = try makeStore()
+        let year = cal.component(.year, from: today) + 1
+        let cadence = store.createCadence(
+            name: "Filter", colorHex: "#32ADE6", glyph: "💧",
+            scheduleType: .relative, frequency: Frequency(n: 1, unit: .months),
+            grace: 5, firstDue: date(year, 1, 31), notify: .standard)
+
+        store.skip(try #require(cadence.activeBeat))
+
+        let februaryEnd = cal.range(of: .day, in: .month, for: date(year, 2, 1))!.count
+        #expect(try #require(cadence.activeBeat).due == date(year, 2, februaryEnd))
+        #expect(cadence.sortedHistory.first?.date == today)
+    }
+
+    @Test("fixed monthly skips preserve the original anchor across clamped months")
+    func fixedMonthlySkips() throws {
+        let store = try makeStore()
+        let cadence = store.createCadence(
+            name: "Bill", colorHex: "#FFCC00", glyph: "⚡️",
+            scheduleType: .fixed, frequency: Frequency(n: 1, unit: .months),
+            grace: 5, firstDue: date(2026, 1, 31), notify: .standard)
+
+        store.skip(try #require(cadence.activeBeat))
+        #expect(try #require(cadence.activeBeat).due == date(2026, 2, 28))
+        store.skip(try #require(cadence.activeBeat))
+        #expect(try #require(cadence.activeBeat).due == date(2026, 3, 31))
+    }
+
+    @Test("standalone completion dates have no history boundary")
+    func standaloneCompletionRange() throws {
+        let store = try makeStore()
+        let beat = store.createStandaloneBeat(
+            name: "Books", colorHex: "#AF52DE", glyph: "📚", due: today, grace: 2)
+
+        #expect(beat.completionDateRange(today: today, calendar: cal) == Date.distantPast...today)
     }
 
     @Test("the one-active-beat invariant survives every advance")
